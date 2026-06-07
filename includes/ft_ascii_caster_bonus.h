@@ -17,6 +17,8 @@
 
 # define KEY_ESC 27
 # define KEY_Q 'q'
+# define KEY_CTRL_C 3
+# define KEY_CTRL_D 4
 
 /* Bonus mini-carte : marge depuis le coin haut-gauche. */
 # define MM_OX 1

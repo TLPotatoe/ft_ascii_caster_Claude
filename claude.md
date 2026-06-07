@@ -118,6 +118,15 @@ Découpage en commits atomiques par étape.
   avant d'être marquée visitée → pile dimensionnée à `4 * w * h`.
 - **Test du rendu sans tty** : l'environnement n'a pas de terminal interactif. Résolu
   en allouant un pseudo-terminal via `script -qec` pour capturer une frame.
+- **`still reachable` à la sortie sur `Ctrl-C`** : en mode raw je désactivais
+  `ICANON`/`ECHO` mais pas `ISIG`. `Ctrl-C` envoyait donc `SIGINT`, tuant le
+  process au milieu de la boucle sans passer par `free_game` → grille + frame
+  encore alloués (signalés `still reachable`, à considérer comme des fuites).
+  `signal()`/`sigaction()` n'étant pas autorisés, solution : désactiver `ISIG`
+  pour que `Ctrl-C` (0x03) et `Ctrl-D` (0x04) arrivent comme des octets, traités
+  comme une demande de sortie propre → `free_game` exécuté. Vérifié : 0 octet en
+  usage à la sortie. (Le test doit envoyer le `^C` *après* l'activation du mode
+  raw, sinon la discipline de ligne du pty génère le signal avant.)
 
 ---
 

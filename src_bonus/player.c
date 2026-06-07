@@ -76,6 +76,8 @@ int	handle_input(t_game *game)
 	if (buf[0] == KEY_ESC)
 		return (handle_escape(game, buf, n), 0);
 	c = buf[0];
+	if (c == KEY_CTRL_C || c == KEY_CTRL_D)
+		game->running = 0;
 	if (c == 'w' || c == 'W')
 		move(game, 1.0);
 	else if (c == 's' || c == 'S')
