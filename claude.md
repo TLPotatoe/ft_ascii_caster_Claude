@@ -115,8 +115,10 @@ Découpage en commits atomiques par étape.
 - **`fabs` / `floor` non autorisés** (hors `sin/cos/tan/sqrt`) : réimplémentés
   (`d_abs`, cast `(int)` pour le plancher sur coordonnées positives).
 - **`size_t` inconnu** dans le header : ajout de `<stddef.h>`.
-- **Pile du flood-fill** : une cellule peut être empilée par plusieurs voisins
-  avant d'être marquée visitée → pile dimensionnée à `4 * w * h`.
+- **Pile du flood-fill** (approche initiale, **abandonnée depuis** — cf. §7) :
+  une cellule pouvait être empilée par plusieurs voisins avant d'être marquée
+  visitée → pile dimensionnée à `4 * w * h`. Le flood-fill a ensuite été remplacé
+  par la vérification locale de `map_closed.c` (plus de `malloc`/pile).
 - **Test du rendu sans tty** : l'environnement n'a pas de terminal interactif. Résolu
   en allouant un pseudo-terminal via `script -qec` pour capturer une frame.
 - **`still reachable` à la sortie sur `Ctrl-C`** : en mode raw je désactivais
