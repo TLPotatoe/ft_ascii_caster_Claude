@@ -1,12 +1,5 @@
 #include "ft_ascii_caster_bonus.h"
 
-static double	d_abs(double v)
-{
-	if (v < 0)
-		return (-v);
-	return (v);
-}
-
 /* Caractère de joueur selon la direction de regard dominante. */
 static char	player_char(t_game *g)
 {
@@ -37,18 +30,19 @@ void	draw_minimap(t_game *game, char *grid)
 	int		x;
 	char	c;
 
-	y = -1;
-	while (++y < game->map.height)
+	y = 0;
+	while (y < game->map.height)
 	{
-		x = -1;
-		while (++x < (int)ft_strlen(game->map.grid[y]))
+		x = 0;
+		while (x < (int)ft_strlen(game->map.grid[y]))
 		{
+			c = '.';
 			if (game->map.grid[y][x] == '1')
 				c = '#';
-			else
-				c = '.';
 			put_cell(grid, MM_OX + x, MM_OY + y, c);
+			x++;
 		}
+		y++;
 	}
 	put_cell(grid, MM_OX + (int)game->pos_x, MM_OY + (int)game->pos_y,
 		player_char(game));

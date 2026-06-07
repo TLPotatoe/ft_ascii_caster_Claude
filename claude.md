@@ -214,22 +214,29 @@ les lignes « Missing or invalid 42 header » (ignorées).
 Implémentée dans **`src_bonus/`**, binaire séparé **`ft_ascii_caster_bonus`**
 via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
 
-- **Collisions** (`src_bonus/player.c`) : déplacement testé axe par axe
+- **Collisions** (`src_bonus/move_bonus.c`) : déplacement testé axe par axe
   (`try_move`) → glissement le long des murs, pas d'arrêt net, pas de traversée.
-- **Textures par face** (`src_bonus/raycaster.c`) : le caractère du mur dépend de
-  la face touchée par le rayon — `N`/`S` (murs horizontaux selon `step` en y),
-  `E`/`W` (murs verticaux selon `step` en x). Remplace l'ombrage par distance.
-- **Mini-carte** (`src_bonus/minimap.c`) : vue 2D en haut-gauche, murs `#`, sol
-  `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour en temps réel,
+- **Textures par face** (`src_bonus/render_bonus.c`, `face_char`) : le caractère
+  du mur dépend de la face touchée par le rayon — `N`/`S` (murs horizontaux selon
+  `step` en y), `E`/`W` (murs verticaux selon `step` en x). Remplace l'ombrage.
+- **Mini-carte** (`src_bonus/minimap_bonus.c`) : vue 2D en haut-gauche, murs `#`,
+  sol `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour temps réel,
   clippée aux bords de l'écran.
 
-Organisation : les fichiers non modifiés (`parse_*`, `terminal`, `utils`) sont
-dupliqués dans `src_bonus/` (incluant le header bonus) pour isoler totalement les
-deux builds. Le header bonus `includes/ft_ascii_caster_bonus.h` reprend la même
-structure + le prototype `draw_minimap`.
+Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
+distinguer facilement sous `norminette | grep Error`) :
+- Le cœur (parsing, fermeture, DDA, terminal, utils, main) est dupliqué à
+  l'identique depuis le mandatoire (seul l'include change), via les fichiers
+  `*_bonus.c`. Cela isole totalement les deux builds.
+- Spécifiques au bonus : `render_bonus.c` (faces), `minimap_bonus.c`,
+  `move_bonus.c` (déplacement + collisions), `player_bonus.c` (rotation + input,
+  avec `player_forward`/`player_strafe` exposés par le header bonus).
+- Header `includes/ft_ascii_caster_bonus.h` : mêmes structures (`t_map`,
+  `t_game`, `t_ray`) + prototypes bonus.
 
-Vérifs bonus : compilation `-Wall -Wextra -Werror` sans warning ; valgrind propre
-(parsing + session de jeu via pty) ; rendu vérifié (faces correctes + mini-carte).
+Vérifs bonus : `-Wall -Wextra -Werror` sans warning ; **norminette** sans erreur
+(hors header 42) ; valgrind **0 octet en usage à la sortie** (parsing + session) ;
+rendu vérifié (faces correctes + mini-carte).
 
 ---
 
@@ -257,7 +264,13 @@ mise à l'échelle, lissage du rendu.
 - `make bonus` puis `./ft_ascii_caster_bonus maps/classic.map`.
 - Tests parsing : `sh tests/run_tests.sh`.
 - Rendu hors tty : `printf 'q' | script -qec "./ft_ascii_caster maps/classic.map" /dev/null`.
-- Code mandatoire : `src/parse_*.c` (carte), `src/terminal.c` (raw),
-  `src/raycaster.c` (DDA+rendu), `src/player.c` (input), `src/main.c` (boucle).
-- Code bonus : `src_bonus/` (mêmes fichiers + `minimap.c`, collisions dans
-  `player.c`, faces dans `raycaster.c`), header `includes/ft_ascii_caster_bonus.h`.
+- Vérif Norme : `norminette | grep Error` (ignorer « Missing or invalid 42
+  header »). Pour ne voir que les vraies erreurs :
+  `norminette 2>/dev/null | grep -E "^Error: " | grep -v "42 header"`.
+- Code mandatoire (`src/`) : `parse_read.c`/`parse_map.c` (lecture+découpe),
+  `parse_check.c` (charset/joueur), `map_closed.c` (fermeture), `terminal.c`
+  (raw), `raycaster.c` (DDA via `t_ray`), `render.c` (projection/ombrage/flush),
+  `player.c` (input), `utils.c`, `main.c`.
+- Code bonus (`src_bonus/`, suffixe `_bonus`) : cœur dupliqué + `render_bonus.c`
+  (faces), `minimap_bonus.c`, `move_bonus.c` (collisions), `player_bonus.c`.
+  Header `includes/ft_ascii_caster_bonus.h`.

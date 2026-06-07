@@ -26,10 +26,10 @@
 
 typedef struct s_map
 {
-	char			**grid;
-	int				height;
-	int				width;
-}					t_map;
+	char	**grid;
+	int		height;
+	int		width;
+}	t_map;
 
 typedef struct s_game
 {
@@ -44,32 +44,63 @@ typedef struct s_game
 	int				raw_active;
 	int				running;
 	char			*frame;
-}					t_game;
+}	t_game;
 
-/* parse_map.c */
-int					load_map(const char *path, t_game *game);
+typedef struct s_ray
+{
+	double	dir_x;
+	double	dir_y;
+	double	delta_x;
+	double	delta_y;
+	double	side_x;
+	double	side_y;
+	int		map_x;
+	int		map_y;
+	int		step_x;
+	int		step_y;
+	int		side;
+	double	dist;
+}	t_ray;
 
-/* parse_check.c */
-int					validate_map(t_game *game);
-int					set_player(t_game *game, int x, int y, char c);
+/* parse_read_bonus.c */
+char		*read_all(int fd);
 
-/* terminal.c */
-int					term_raw_mode(t_game *game);
-void				term_restore(t_game *game);
+/* parse_map_bonus.c */
+int			load_map(const char *path, t_game *game);
 
-/* raycaster.c */
-void				render_frame(t_game *game);
+/* parse_check_bonus.c */
+int			validate_map(t_game *game);
 
-/* minimap.c (bonus) */
-void				draw_minimap(t_game *game, char *grid);
+/* map_closed_bonus.c */
+int			map_is_closed(t_game *game);
 
-/* player.c */
-int					handle_input(t_game *game);
+/* terminal_bonus.c */
+int			term_raw_mode(t_game *game);
+void		term_restore(t_game *game);
 
-/* utils.c */
-size_t				ft_strlen(const char *s);
-void				ft_putstr_fd(const char *s, int fd);
-void				error_exit(t_game *game, const char *msg);
-void				free_game(t_game *game);
+/* raycaster_bonus.c */
+void		ray_setup(t_game *g, t_ray *r, double cam);
+void		ray_step(t_game *g, t_ray *r);
+void		ray_cast(t_game *g, t_ray *r);
+
+/* render_bonus.c */
+void		render_frame(t_game *game);
+
+/* minimap_bonus.c */
+void		draw_minimap(t_game *game, char *grid);
+
+/* move_bonus.c */
+void		player_forward(t_game *g, double sign);
+void		player_strafe(t_game *g, double sign);
+
+/* player_bonus.c */
+int			handle_input(t_game *game);
+
+/* utils_bonus.c */
+size_t		ft_strlen(const char *s);
+void		ft_putstr_fd(const char *s, int fd);
+void		error_exit(t_game *game, const char *msg);
+void		free_game(t_game *game);
+double		d_abs(double v);
 
 #endif

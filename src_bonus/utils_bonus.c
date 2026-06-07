@@ -54,3 +54,11 @@ void	error_exit(t_game *game, const char *msg)
 	}
 	exit(1);
 }
+
+/* Valeur absolue (fabs n'est pas dans les fonctions autorisées). */
+double	d_abs(double v)
+{
+	if (v < 0)
+		return (-v);
+	return (v);
+}

@@ -2,8 +2,9 @@
 #include <unistd.h>
 
 /* Passe le terminal en mode raw (non canonique, sans écho) et en lecture
-   non-bloquante (VMIN=0, VTIME=0) afin de capturer les touches immédiatement.
-   Masque le curseur. Renvoie 0 en cas de succès, -1 sinon. */
+   non-bloquante (VMIN=0, VTIME=0) pour capturer les touches immédiatement.
+   ISIG est désactivé pour que Ctrl-C/Ctrl-Z arrivent comme des octets (sortie
+   propre sans signal(), non autorisé). Masque le curseur. 0 si ok, -1 sinon. */
 int	term_raw_mode(t_game *game)
 {
 	struct termios	raw;
@@ -11,10 +12,6 @@ int	term_raw_mode(t_game *game)
 	if (tcgetattr(0, &game->orig_term) != 0)
 		return (-1);
 	raw = game->orig_term;
-	/* ICANON/ECHO : mode non canonique sans écho.
-		ISIG : désactive la génération de signaux (Ctrl-C/Ctrl-Z) -> ces touches
-		arrivent comme des octets et sont traitées en sortie propre (le sujet
-		impose de tout libérer en cas d'interruption ; signal() non autorisé). */
 	raw.c_lflag &= ~(ICANON | ECHO | ISIG);
 	raw.c_cc[VMIN] = 0;
 	raw.c_cc[VTIME] = 0;
