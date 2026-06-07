@@ -6,9 +6,6 @@
 > et **ce que** l'IA a produit. Le journal d'ingénierie détaillé vit dans
 > [`claude.md`](claude.md).
 
-> 💡 *Import Google Docs :* `Fichier → Importer` ce `.md`, ou copier-coller son
-> contenu (Google Docs interprète le Markdown).
-
 ---
 
 ## 1. Méthodologie de prompting (côté utilisateur)
