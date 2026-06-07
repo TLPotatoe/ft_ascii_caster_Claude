@@ -19,26 +19,6 @@ void	ft_putstr_fd(const char *s, int fd)
 	write(fd, s, ft_strlen(s));
 }
 
-/* Écrit la représentation décimale de n dans dst, renvoie la position suivante.
-   Sert à composer des séquences ANSI sans printf. */
-char	*put_uint(char *dst, unsigned int n)
-{
-	char	tmp[10];
-	int		i;
-
-	i = 0;
-	if (n == 0)
-		tmp[i++] = '0';
-	while (n > 0)
-	{
-		tmp[i++] = (char)('0' + n % 10);
-		n /= 10;
-	}
-	while (i > 0)
-		*dst++ = tmp[--i];
-	return (dst);
-}
-
 void	free_game(t_game *game)
 {
 	int	i;

@@ -68,7 +68,7 @@ Exemple valide donné par le sujet :
 | # | Ambiguïté | Décision retenue | Justification |
 |---|-----------|------------------|---------------|
 | A1 | Lire la taille réelle du terminal nécessite `ioctl(TIOCGWINSZ)`, **non autorisé** | Résolution **fixe 80×40** | Le sujet autorise explicitement « fixer une résolution par défaut (80×40) ». Évite une fonction interdite. |
-| A2 | Touche pour quitter non spécifiée | `ESC` (et `q`) quittent proprement | Convention terminal ; aucune contrainte du sujet violée. |
+| A2 | Touche pour quitter non spécifiée | `ESC`, `q`, ainsi que `Ctrl-C`/`Ctrl-D` quittent proprement | Convention terminal ; `Ctrl-C`/`Ctrl-D` interceptés pour libérer la mémoire sur interruption (cf. §6). |
 | A3 | « flèches ou touches de rotation » | Flèches **gauche/droite** pour pivoter | Couvre le cas le plus naturel ; WASD réservé au déplacement. |
 | A4 | Rôle de A/D (WASD) | A/D = **strafe** gauche/droite, W/S = avant/arrière | Mapping FPS standard ; rotation via flèches (A3). |
 | A5 | FOV exact | **60°** (plane = tan(30°)·dir ≈ 0.577) | Sujet : « FOV de ~60° ». |
@@ -96,8 +96,9 @@ Découpage en commits atomiques par étape.
 ## 5. Décisions techniques
 
 - **Rendu** : un seul `write(1, buffer, len)` par frame (buffer pré-alloué),
-  pas de `printf` → reste strictement dans `write`. Écriture des nombres ANSI
-  via une petite fonction maison (`itoa`-like sur buffer).
+  pas de `printf` → reste strictement dans `write`. Les séquences ANSI utilisées
+  sont fixes (`\033[H`, `\033[2J`, `\033[?25l/h`), donc aucune conversion de
+  nombre n'est nécessaire.
 - **Non-bloquant** : `termios` avec `VMIN=0, VTIME=0` → `read` retourne
   immédiatement (évite `fcntl`, non autorisé).
 - **Coordonnées** : grille `map[y][x]`, y vers le bas. Joueur en
@@ -137,12 +138,14 @@ Découpage en commits atomiques par étape.
 - Validation en deux temps : `scan_grid` (charset, lignes vides, joueur unique)
   puis `is_closed` (flood-fill itératif depuis le joueur ; toute sortie hors
   carte = fuite = carte non close).
-- Mode raw : `termios` avec `ICANON`/`ECHO` désactivés et `VMIN=0/VTIME=0` pour
-  une lecture non bloquante sans `fcntl`.
+- Mode raw : `termios` avec `ICANON`/`ECHO`/`ISIG` désactivés et `VMIN=0/VTIME=0`
+  pour une lecture non bloquante sans `fcntl`. `ISIG` off → `Ctrl-C`/`Ctrl-D`
+  arrivent comme des octets (`0x03`/`0x04`) interceptés par `handle_input` pour
+  une sortie propre (libération sur interruption sans `signal()`).
 - Rendu : DDA façon lodev, un seul `write` par frame depuis un buffer pré-alloué,
   rafraîchissement via `\033[H` (curseur en haut) ; curseur masqué pendant le jeu.
-- Sortie toujours propre : `error_exit` et la fin de boucle restaurent le
-  terminal et libèrent toute la mémoire.
+- Sortie toujours propre : `error_exit`, la fin de boucle et l'interruption
+  clavier restaurent le terminal et libèrent toute la mémoire.
 
 ---
 
@@ -154,12 +157,20 @@ Script : `tests/run_tests.sh` → **9/9 réussis** (tous les cas d'erreur affich
 Cas couverts : aucun argument, mauvaise extension, fichier introuvable, carte non
 fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au milieu.
 
-- **Valgrind** (`--leak-check=full`) sur tous les chemins d'erreur **et** sur une
-  session de jeu complète (via pty) : **aucune fuite, aucune erreur mémoire**.
-- **Compilation** `-Wall -Wextra -Werror` : **0 warning**.
-- **Rendu** vérifié via pseudo-terminal (`script`) sur `maps/classic.map` : murs
-  perspectivés, ombrage par distance (`@`/`#`/`O`/`x`/`.`), plafond/sol en
-  espaces, sortie propre sur `q`.
+- **Valgrind** (`--leak-check=full --show-leak-kinds=all`) sur tous les chemins
+  d'erreur **et** sur une session de jeu complète (via pty), pour les deux
+  binaires : **0 octet en usage à la sortie** (y compris `still reachable`),
+  **aucune erreur mémoire**. Couvre les sorties `q`/`ESC` **et** `Ctrl-C`.
+- **Compilation** `-Wall -Wextra -Werror` (mandatoire + bonus) : **0 warning**.
+- **Rendu** vérifié via pseudo-terminal (`script`) sur `maps/classic.map` :
+  mandatoire = murs perspectivés + ombrage par distance (`@`/`#`/`O`/`x`/`.`) ;
+  bonus = faces `N`/`S`/`E`/`W` + mini-carte ; plafond/sol en espaces, sortie
+  propre.
+
+> Note méthodo : tester l'interruption exige d'envoyer le `^C` *après*
+> l'activation du mode raw (ex. `(sleep 1; printf '\003') | script -qec ...`),
+> sinon la discipline de ligne du pty génère le `SIGINT` avant que le programme
+> n'ait désactivé `ISIG`.
 
 ---
 

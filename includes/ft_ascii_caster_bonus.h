@@ -69,7 +69,6 @@ int		handle_input(t_game *game);
 /* utils.c */
 size_t	ft_strlen(const char *s);
 void	ft_putstr_fd(const char *s, int fd);
-char	*put_uint(char *dst, unsigned int n);
 void	error_exit(t_game *game, const char *msg);
 void	free_game(t_game *game);
 
