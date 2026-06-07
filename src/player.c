@@ -1,6 +1,6 @@
 #include "ft_ascii_caster.h"
-#include <unistd.h>
 #include <math.h>
+#include <unistd.h>
 
 /* Avance/recule le long du vecteur direction (signe = +1 avant, -1 arrière).
    Aucune collision dans le mandatoire (cf. ambiguïté A7). */

@@ -5,8 +5,8 @@ CFLAGS		= -Wall -Wextra -Werror
 INCLUDES	= -Iincludes
 
 SRC_DIR		= src
-SRCS		= main.c parse_map.c parse_check.c terminal.c \
-			  raycaster.c player.c utils.c
+SRCS		= main.c parse_read.c parse_map.c parse_check.c map_closed.c \
+			  terminal.c raycaster.c render.c player.c utils.c
 OBJS		= $(addprefix $(SRC_DIR)/, $(SRCS:.c=.o))
 
 BONUS_NAME	= ft_ascii_caster_bonus

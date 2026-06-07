@@ -65,7 +65,8 @@ static int	scan_grid(t_game *game)
 	return (players);
 }
 
-/* Renvoie le caractère en (x,y), ou '\0' si hors carte (= fuite vers extérieur). */
+/* Renvoie le caractère en (x,y),
+	ou '\0' si hors carte (= fuite vers extérieur). */
 static char	cell_at(t_game *game, int x, int y)
 {
 	if (y < 0 || y >= game->map.height || x < 0)
@@ -79,12 +80,12 @@ static char	cell_at(t_game *game, int x, int y)
    non visitées. Renvoie 0 si un voisin fuit hors carte (carte non close). */
 static int	flood_step(t_game *g, char *vis, int *st, int *top, int cur)
 {
-	int		x;
-	int		y;
-	int		k;
-	int		w;
+	int			x;
+	int			y;
+	int			k;
+	int			w;
 	const int	d[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
-	char	c;
+	char		c;
 
 	w = g->map.width;
 	x = cur % w;
@@ -113,7 +114,8 @@ static int	is_closed(t_game *game)
 	int		cur;
 
 	visited = malloc((size_t)(game->map.width * game->map.height));
-	stack = malloc(sizeof(int) * (size_t)(game->map.width * game->map.height) * 4);
+	stack = malloc(sizeof(int) * (size_t)(game->map.width * game->map.height)
+			* 4);
 	if (!visited || !stack)
 		return (free(visited), free(stack), error_exit(game, "alloc"), 0);
 	i = -1;

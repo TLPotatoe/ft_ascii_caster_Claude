@@ -1,7 +1,7 @@
 #include "ft_ascii_caster_bonus.h"
 #include <fcntl.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /* Lit l'intégralité d'un fd dans un buffer malloc terminé par '\0'.
    Renvoie le buffer (à free par l'appelant) ou NULL en cas d'échec. */

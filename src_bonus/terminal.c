@@ -12,9 +12,9 @@ int	term_raw_mode(t_game *game)
 		return (-1);
 	raw = game->orig_term;
 	/* ICANON/ECHO : mode non canonique sans écho.
-	   ISIG : désactive la génération de signaux (Ctrl-C/Ctrl-Z) -> ces touches
-	   arrivent comme des octets et sont traitées en sortie propre (le sujet
-	   impose de tout libérer en cas d'interruption ; signal() non autorisé). */
+		ISIG : désactive la génération de signaux (Ctrl-C/Ctrl-Z) -> ces touches
+		arrivent comme des octets et sont traitées en sortie propre (le sujet
+		impose de tout libérer en cas d'interruption ; signal() non autorisé). */
 	raw.c_lflag &= ~(ICANON | ECHO | ISIG);
 	raw.c_cc[VMIN] = 0;
 	raw.c_cc[VTIME] = 0;

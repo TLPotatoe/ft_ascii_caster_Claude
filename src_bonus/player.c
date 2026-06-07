@@ -1,6 +1,6 @@
 #include "ft_ascii_caster_bonus.h"
-#include <unistd.h>
 #include <math.h>
+#include <unistd.h>
 
 /* Bonus — vrai si la case (x,y) est un mur ou hors carte. */
 static int	is_blocked(t_game *g, double x, double y)
@@ -34,8 +34,8 @@ static void	move(t_game *g, double sign)
 
 static void	strafe(t_game *g, double sign)
 {
-	try_move(g, g->plane_x / PLANE_LEN * MOVE_SPEED * sign,
-		g->plane_y / PLANE_LEN * MOVE_SPEED * sign);
+	try_move(g, g->plane_x / PLANE_LEN * MOVE_SPEED * sign, g->plane_y
+		/ PLANE_LEN * MOVE_SPEED * sign);
 }
 
 static void	rotate(t_game *g, double a)

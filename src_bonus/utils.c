@@ -1,6 +1,6 @@
 #include "ft_ascii_caster_bonus.h"
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 size_t	ft_strlen(const char *s)
 {

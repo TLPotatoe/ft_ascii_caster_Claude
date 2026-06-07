@@ -136,8 +136,10 @@ Découpage en commits atomiques par étape.
 - Lecture complète du fichier en un buffer croissant (`read_all`), puis découpe
   en lignes (`split_lines`) ; un `\n` final ne crée pas de ligne vide.
 - Validation en deux temps : `scan_grid` (charset, lignes vides, joueur unique)
-  puis `is_closed` (flood-fill itératif depuis le joueur ; toute sortie hors
-  carte = fuite = carte non close).
+  puis `map_is_closed` (vérification **locale** : la carte est fermée si aucune
+  case franchissable `0`/joueur n'a de voisin hors carte). Remplace le flood-fill
+  initial lors du passage à la Norme : sémantique identique pour « fermée par des
+  murs » (un `0` au bord ⇒ non close), mais sans `malloc`/pile, et plus court.
 - Mode raw : `termios` avec `ICANON`/`ECHO`/`ISIG` désactivés et `VMIN=0/VTIME=0`
   pour une lecture non bloquante sans `fcntl`. `ISIG` off → `Ctrl-C`/`Ctrl-D`
   arrivent comme des octets (`0x03`/`0x04`) interceptés par `handle_input` pour
@@ -171,6 +173,27 @@ fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au mil
 > l'activation du mode raw (ex. `(sleep 1; printf '\003') | script -qec ...`),
 > sinon la discipline de ligne du pty génère le `SIGINT` avant que le programme
 > n'ait désactivé `ISIG`.
+
+### Mise à la Norme (norminette)
+
+Le code respecte la **Norme 42** (`norminette`), à l'exception de l'en-tête 42
+(non requis ici). Contraintes appliquées : pas de `for`, pas d'affectation en
+condition, ≤ 25 lignes/fonction, ≤ 5 variables/fonction, ≤ 4 arguments,
+≤ 5 fonctions/fichier, pas de commentaire dans un corps de fonction, alignement
+par tabulations.
+
+Réorganisation induite (mandatoire) :
+- `parse_read.c` (lecture brute : `read_all` + `append`) séparé de `parse_map.c`
+  (découpe en lignes).
+- `map_closed.c` (vérif de fermeture locale) séparé de `parse_check.c`
+  (charset + joueur).
+- `raycaster.c` (DDA pur, via `t_ray`) séparé de `render.c` (projection,
+  ombrage, sérialisation de la frame). `d_abs` déplacé dans `utils.c`.
+- Structure `t_ray` ajoutée au header pour réduire le nombre de variables locales
+  du moteur.
+
+Vérif : `norminette src/ includes/ft_ascii_caster.h | grep Error` ne renvoie que
+les lignes « Missing or invalid 42 header » (ignorées).
 
 ---
 

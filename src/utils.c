@@ -1,6 +1,6 @@
 #include "ft_ascii_caster.h"
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 size_t	ft_strlen(const char *s)
 {
@@ -53,4 +53,12 @@ void	error_exit(t_game *game, const char *msg)
 		free_game(game);
 	}
 	exit(1);
+}
+
+/* Valeur absolue (fabs n'est pas dans les fonctions autorisées). */
+double	d_abs(double v)
+{
+	if (v < 0)
+		return (-v);
+	return (v);
 }

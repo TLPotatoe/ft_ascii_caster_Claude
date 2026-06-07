@@ -1,6 +1,6 @@
 #include "ft_ascii_caster.h"
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /* Vérifie que le chemin se termine par l'extension ".map". */
 static int	has_map_ext(const char *path)
@@ -10,8 +10,8 @@ static int	has_map_ext(const char *path)
 	len = ft_strlen(path);
 	if (len < 4)
 		return (0);
-	return (path[len - 4] == '.' && path[len - 3] == 'm'
-		&& path[len - 2] == 'a' && path[len - 1] == 'p');
+	return (path[len - 4] == '.' && path[len - 3] == 'm' && path[len - 2] == 'a'
+		&& path[len - 1] == 'p');
 }
 
 /* Initialise l'état à zéro puis alloue le buffer d'affichage. */
@@ -27,7 +27,8 @@ static void	init_game(t_game *game)
 		error_exit(game, "allocation failure");
 }
 
-/* Boucle principale : lecture clavier -> rendu -> attente, jusqu'à la sortie. */
+/* Boucle principale : lecture clavier -> rendu -> attente,
+	jusqu'à la sortie. */
 static void	game_loop(t_game *game)
 {
 	while (game->running)

@@ -135,7 +135,8 @@ static void	fill_screen(t_game *game, char *screen)
 	}
 }
 
-/* Sérialise la grille écran (avec home + sauts de ligne) puis écrit la frame. */
+/* Sérialise la grille écran (avec home
+	+ sauts de ligne) puis écrit la frame. */
 void	render_frame(t_game *game)
 {
 	char	screen[SCR_W * SCR_H];
