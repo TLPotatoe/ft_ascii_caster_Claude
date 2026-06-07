@@ -9,6 +9,12 @@ SRCS		= main.c parse_map.c parse_check.c terminal.c \
 			  raycaster.c player.c utils.c
 OBJS		= $(addprefix $(SRC_DIR)/, $(SRCS:.c=.o))
 
+BONUS_NAME	= ft_ascii_caster_bonus
+BSRC_DIR	= src_bonus
+BSRCS		= main.c parse_map.c parse_check.c terminal.c \
+			  raycaster.c minimap.c player.c utils.c
+BOBJS		= $(addprefix $(BSRC_DIR)/, $(BSRCS:.c=.o))
+
 all: $(NAME)
 
 $(NAME): $(OBJS)
@@ -17,12 +23,20 @@ $(NAME): $(OBJS)
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+bonus: $(BONUS_NAME)
+
+$(BONUS_NAME): $(BOBJS)
+	$(CC) $(CFLAGS) $(BOBJS) -lm -o $(BONUS_NAME)
+
+$(BSRC_DIR)/%.o: $(BSRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(BOBJS)
 
 fclean: clean
-	rm -f $(NAME)
+	rm -f $(NAME) $(BONUS_NAME)
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all bonus clean fclean re

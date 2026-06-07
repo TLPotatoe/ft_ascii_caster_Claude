@@ -157,7 +157,36 @@ fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au mil
 ## 9. Limitations connues
 
 - Taille d'affichage fixe (pas de redimensionnement dynamique du terminal) — cf. A1.
-- Bonus (collisions, textures par face, mini-carte) non inclus dans le mandatoire.
+- Lecture clavier : si plusieurs octets arrivent dans un même `read` (touches très
+  rapprochées), seul le premier est interprété par frame (les flèches, séquences
+  de 3 octets, restent gérées). Sans impact en jeu réel (≈60 FPS). Volontaire pour
+  garder un parsing d'entrée simple et sûr.
+- Mandatoire : pas de collision (volontaire, cf. A7) → le joueur peut traverser
+  les murs. Corrigé dans la **version bonus**.
+
+---
+
+## 9bis. Partie bonus
+
+Implémentée dans **`src_bonus/`**, binaire séparé **`ft_ascii_caster_bonus`**
+via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
+
+- **Collisions** (`src_bonus/player.c`) : déplacement testé axe par axe
+  (`try_move`) → glissement le long des murs, pas d'arrêt net, pas de traversée.
+- **Textures par face** (`src_bonus/raycaster.c`) : le caractère du mur dépend de
+  la face touchée par le rayon — `N`/`S` (murs horizontaux selon `step` en y),
+  `E`/`W` (murs verticaux selon `step` en x). Remplace l'ombrage par distance.
+- **Mini-carte** (`src_bonus/minimap.c`) : vue 2D en haut-gauche, murs `#`, sol
+  `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour en temps réel,
+  clippée aux bords de l'écran.
+
+Organisation : les fichiers non modifiés (`parse_*`, `terminal`, `utils`) sont
+dupliqués dans `src_bonus/` (incluant le header bonus) pour isoler totalement les
+deux builds. Le header bonus `includes/ft_ascii_caster_bonus.h` reprend la même
+structure + le prototype `draw_minimap`.
+
+Vérifs bonus : compilation `-Wall -Wextra -Werror` sans warning ; valgrind propre
+(parsing + session de jeu via pty) ; rendu vérifié (faces correctes + mini-carte).
 
 ---
 
@@ -171,16 +200,21 @@ fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au mil
 - [x] Boucle principale + sortie propre.
 - [x] Passe valgrind / vérif fuites (propre).
 
-À discuter avec l'utilisateur avant de continuer (le bonus n'est évalué que si le
-mandatoire est irréprochable) :
+**Partie bonus : terminée et vérifiée** (`make bonus`).
 
-- [ ] Bonus — Gestion des collisions (glisser le long des murs).
-- [ ] Bonus — Orientation des faces (textures ASCII : `N`/`S`/`E`/`W` selon la face).
-- [ ] Bonus — Mini-carte 2D dans un coin avec position/orientation du joueur.
+- [x] Collisions (glissement le long des murs).
+- [x] Orientation des faces (textures ASCII `N`/`S`/`E`/`W`).
+- [x] Mini-carte 2D avec position/orientation du joueur.
+
+Projet complet. Pistes éventuelles si demandé : cartes plus grandes, mini-carte
+mise à l'échelle, lissage du rendu.
 
 ### Reprise rapide pour une nouvelle session
 - `make` puis `./ft_ascii_caster maps/classic.map` (nécessite un vrai terminal).
+- `make bonus` puis `./ft_ascii_caster_bonus maps/classic.map`.
 - Tests parsing : `sh tests/run_tests.sh`.
 - Rendu hors tty : `printf 'q' | script -qec "./ft_ascii_caster maps/classic.map" /dev/null`.
-- Code : `src/parse_*.c` (carte), `src/terminal.c` (raw), `src/raycaster.c`
-  (DDA+rendu), `src/player.c` (input), `src/main.c` (boucle).
+- Code mandatoire : `src/parse_*.c` (carte), `src/terminal.c` (raw),
+  `src/raycaster.c` (DDA+rendu), `src/player.c` (input), `src/main.c` (boucle).
+- Code bonus : `src_bonus/` (mêmes fichiers + `minimap.c`, collisions dans
+  `player.c`, faces dans `raycaster.c`), header `includes/ft_ascii_caster_bonus.h`.
