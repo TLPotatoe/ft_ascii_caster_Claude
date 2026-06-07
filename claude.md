@@ -1,0 +1,171 @@
+# Journal d'ingénierie — ft_ascii_caster
+
+> Ce fichier est le journal de bord du projet. Il doit permettre à une nouvelle
+> session de reprendre le travail à partir du dépôt Git seul.
+> **Source de vérité unique : `sujet_ft_ascii_caster.pdf`.**
+
+---
+
+## 1. Compréhension du sujet
+
+Réaliser un **moteur de rendu 3D en mode texte (ASCII)** fonctionnant dans un
+terminal UNIX, en **C pur**, via la technique du **Raycasting** (style
+Wolfenstein 3D / cub3d). Le programme :
+
+- charge une carte depuis un fichier `.map` passé en argument ;
+- place un joueur et gère ses déplacements en temps réel (clavier non-bloquant) ;
+- affiche une perspective 3D en ASCII via `write`/`printf` et des codes ANSI ;
+- n'utilise **aucune** bibliothèque graphique externe.
+
+Invocation : `./ft_ascii_caster maps/classic.map`
+
+### Carte (.map)
+Grille vue du dessus. Caractères autorisés :
+- `1` : mur
+- `0` : sol (case marchable)
+- `N` / `S` / `E` / `W` : position initiale du joueur + direction de regard.
+
+Exemple valide donné par le sujet :
+```
+1111111111
+1000000001
+1011001101
+10000N0001
+1111111111
+```
+
+### Boucle de rendu (par itération)
+1. Récupérer la taille du terminal **ou** fixer une résolution par défaut (ex. 80×40).
+2. Pour chaque colonne écran : lancer un rayon depuis le joueur, angle fonction du FOV (~60°).
+3. Calculer l'intersection avec le premier mur `1` via **DDA** (Digital Differential Analysis).
+4. Déduire la hauteur apparente du mur depuis la distance (effet perspective).
+5. **Ombrage ASCII** : caractère fonction de la distance (proche = dense :
+   `@`, puis `#`, `O`, `x`, `.` pour le lointain). Vide au-dessus/dessous = plafond/sol.
+
+---
+
+## 2. Contraintes identifiées
+
+- **Langage C uniquement.**
+- Compilation **`-Wall -Wextra -Werror`** sans warning.
+- **Zéro fuite mémoire** : tout `malloc` libéré, y compris sur erreur/interruption.
+- **Fonctions autorisées (liste fermée)** :
+  `open, close, read, write, malloc, free, perror, strerror, exit, usleep`,
+  les fonctions de `<math.h>` (`sin, cos, tan, sqrt`) et de `<termios.h>`.
+- Bibliothèques graphiques (MiniLibX, OpenGL, **ncurses**) **interdites**.
+- Rendu via écritures standard (`write` ou `printf`) + codes d'échappement ANSI.
+- Binaire nommé `ft_ascii_caster`, **un seul** argument (chemin `.map`).
+- Parser **intraitable** : carte non fermée par des murs, joueurs multiples,
+  caractère invalide, ligne vide au milieu → `Error\n` + message explicite,
+  tout libérer, quitter proprement.
+- Terminal en mode **raw / non-canonique** (`struct termios`) + lecture
+  **non-bloquante**, capture immédiate des touches (sans `Entrée`).
+
+---
+
+## 3. Hypothèses & ambiguïtés (tranchées par défaut)
+
+| # | Ambiguïté | Décision retenue | Justification |
+|---|-----------|------------------|---------------|
+| A1 | Lire la taille réelle du terminal nécessite `ioctl(TIOCGWINSZ)`, **non autorisé** | Résolution **fixe 80×40** | Le sujet autorise explicitement « fixer une résolution par défaut (80×40) ». Évite une fonction interdite. |
+| A2 | Touche pour quitter non spécifiée | `ESC` (et `q`) quittent proprement | Convention terminal ; aucune contrainte du sujet violée. |
+| A3 | « flèches ou touches de rotation » | Flèches **gauche/droite** pour pivoter | Couvre le cas le plus naturel ; WASD réservé au déplacement. |
+| A4 | Rôle de A/D (WASD) | A/D = **strafe** gauche/droite, W/S = avant/arrière | Mapping FPS standard ; rotation via flèches (A3). |
+| A5 | FOV exact | **60°** (plane = tan(30°)·dir ≈ 0.577) | Sujet : « FOV de ~60° ». |
+| A6 | Seuils d'ombrage par distance | `@`<2, `#`<4, `O`<7, `x`<12, sinon `.` | Le sujet donne l'ordre des caractères, pas les seuils → choix cohérent dégradé. |
+| A7 | Collision dans le mandatoire | **Non** (bonus). Le joueur peut traverser. | Le sujet classe la collision en **bonus** ; ne pas l'ajouter au mandatoire (règle « ne pas ajouter de features non demandées »). |
+| A8 | Format du message d'erreur | `Error\n` puis ligne descriptive sur stderr | Sujet : `Error` suivi d'un message explicite. |
+
+---
+
+## 4. Plan d'implémentation
+
+1. **Squelette** : Makefile, header, dossier `maps/`, `claude.md`, `.gitignore`. ✅
+2. **Parsing** : lecture fichier (`open`/`read`), validation stricte (charset,
+   fermeture par murs, joueur unique, lignes vides), stockage grille + position joueur.
+3. **Terminal** : passage en mode raw non-bloquant via `termios`, restauration à la sortie.
+4. **Raycaster** : DDA par colonne, distance perpendiculaire, hauteur de mur.
+5. **Render** : construction d'un buffer écran (frame) + ombrage ASCII + flush `write` + ANSI.
+6. **Boucle principale** : input → update → render → `usleep`, sortie propre (free + restore termios).
+7. **Tests** : cartes valides/invalides, script de vérif erreurs, valgrind (fuites).
+
+Découpage en commits atomiques par étape.
+
+---
+
+## 5. Décisions techniques
+
+- **Rendu** : un seul `write(1, buffer, len)` par frame (buffer pré-alloué),
+  pas de `printf` → reste strictement dans `write`. Écriture des nombres ANSI
+  via une petite fonction maison (`itoa`-like sur buffer).
+- **Non-bloquant** : `termios` avec `VMIN=0, VTIME=0` → `read` retourne
+  immédiatement (évite `fcntl`, non autorisé).
+- **Coordonnées** : grille `map[y][x]`, y vers le bas. Joueur en
+  `(x=col+0.5, y=row+0.5)`. Vecteurs `dir` + `plane` (caméra) façon lodev.
+- **ANSI** : `\033[2J\033[H` (clear+home) ou `\033[H` (home seul) pour rafraîchir.
+
+---
+
+## 6. Problèmes rencontrés
+
+- **`ioctl` / `isatty` non autorisés** : impossible de lire la taille du terminal
+  ou de tester proprement si stdin est un tty. → résolution fixe (A1) et on se
+  repose sur l'échec de `tcgetattr` sur un non-terminal.
+- **`fabs` / `floor` non autorisés** (hors `sin/cos/tan/sqrt`) : réimplémentés
+  (`d_abs`, cast `(int)` pour le plancher sur coordonnées positives).
+- **`size_t` inconnu** dans le header : ajout de `<stddef.h>`.
+- **Pile du flood-fill** : une cellule peut être empilée par plusieurs voisins
+  avant d'être marquée visitée → pile dimensionnée à `4 * w * h`.
+- **Test du rendu sans tty** : l'environnement n'a pas de terminal interactif. Résolu
+  en allouant un pseudo-terminal via `script -qec` pour capturer une frame.
+
+---
+
+## 7. Solutions retenues
+
+- Lecture complète du fichier en un buffer croissant (`read_all`), puis découpe
+  en lignes (`split_lines`) ; un `\n` final ne crée pas de ligne vide.
+- Validation en deux temps : `scan_grid` (charset, lignes vides, joueur unique)
+  puis `is_closed` (flood-fill itératif depuis le joueur ; toute sortie hors
+  carte = fuite = carte non close).
+- Mode raw : `termios` avec `ICANON`/`ECHO` désactivés et `VMIN=0/VTIME=0` pour
+  une lecture non bloquante sans `fcntl`.
+- Rendu : DDA façon lodev, un seul `write` par frame depuis un buffer pré-alloué,
+  rafraîchissement via `\033[H` (curseur en haut) ; curseur masqué pendant le jeu.
+- Sortie toujours propre : `error_exit` et la fin de boucle restaurent le
+  terminal et libèrent toute la mémoire.
+
+---
+
+## 8. Résultats des tests
+
+Script : `tests/run_tests.sh` → **9/9 réussis** (tous les cas d'erreur affichent
+`Error` + message et sortent avec un code != 0).
+
+Cas couverts : aucun argument, mauvaise extension, fichier introuvable, carte non
+fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au milieu.
+
+- **Valgrind** (`--leak-check=full`) sur tous les chemins d'erreur **et** sur une
+  session de jeu complète (via pty) : **aucune fuite, aucune erreur mémoire**.
+- **Compilation** `-Wall -Wextra -Werror` : **0 warning**.
+- **Rendu** vérifié via pseudo-terminal (`script`) sur `maps/classic.map` : murs
+  perspectivés, ombrage par distance (`@`/`#`/`O`/`x`/`.`), plafond/sol en
+  espaces, sortie propre sur `q`.
+
+---
+
+## 9. Limitations connues
+
+- Taille d'affichage fixe (pas de redimensionnement dynamique du terminal) — cf. A1.
+- Bonus (collisions, textures par face, mini-carte) non inclus dans le mandatoire.
+
+---
+
+## 10. Prochaines étapes
+
+- [ ] Implémenter le parsing strict + tests d'erreur.
+- [ ] Mode terminal raw non-bloquant.
+- [ ] Moteur DDA + rendu ASCII.
+- [ ] Boucle principale + sortie propre.
+- [ ] Passe valgrind / vérif fuites.
+- [ ] (Optionnel, après validation) bonus.
