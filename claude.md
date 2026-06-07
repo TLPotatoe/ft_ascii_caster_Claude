@@ -163,9 +163,24 @@ fermée, caractère invalide, joueurs multiples, aucun joueur, ligne vide au mil
 
 ## 10. Prochaines étapes
 
-- [ ] Implémenter le parsing strict + tests d'erreur.
-- [ ] Mode terminal raw non-bloquant.
-- [ ] Moteur DDA + rendu ASCII.
-- [ ] Boucle principale + sortie propre.
-- [ ] Passe valgrind / vérif fuites.
-- [ ] (Optionnel, après validation) bonus.
+**Partie mandatoire : terminée et vérifiée.**
+
+- [x] Parsing strict + tests d'erreur (9/9).
+- [x] Mode terminal raw non-bloquant.
+- [x] Moteur DDA + rendu ASCII.
+- [x] Boucle principale + sortie propre.
+- [x] Passe valgrind / vérif fuites (propre).
+
+À discuter avec l'utilisateur avant de continuer (le bonus n'est évalué que si le
+mandatoire est irréprochable) :
+
+- [ ] Bonus — Gestion des collisions (glisser le long des murs).
+- [ ] Bonus — Orientation des faces (textures ASCII : `N`/`S`/`E`/`W` selon la face).
+- [ ] Bonus — Mini-carte 2D dans un coin avec position/orientation du joueur.
+
+### Reprise rapide pour une nouvelle session
+- `make` puis `./ft_ascii_caster maps/classic.map` (nécessite un vrai terminal).
+- Tests parsing : `sh tests/run_tests.sh`.
+- Rendu hors tty : `printf 'q' | script -qec "./ft_ascii_caster maps/classic.map" /dev/null`.
+- Code : `src/parse_*.c` (carte), `src/terminal.c` (raw), `src/raycaster.c`
+  (DDA+rendu), `src/player.c` (input), `src/main.c` (boucle).
