@@ -103,6 +103,15 @@ non conservé dans le dépôt) a d'abord servi à valider la méthode ANSI contr
 > de changement, pas besoin d'update. » → rendu **paresseux** : la frame n'est
 > resérialisée et réécrite que sur entrée clavier ou resize.
 
+> « sous lag, en maintenant ←, le joueur dérive à droite et tourne en rond,
+> pourquoi ? » → bug de **désynchronisation du flux clavier** (la queue d'une
+> flèche relue comme un strafe) ; corrigé par un parsing par tokens complets +
+> accumulateur (`input_bonus.c`).
+
+> « j'aimerais que la caméra soit alignée avec le monde ; de combien de degrés
+> tourne-t-elle ? » → le pas de rotation (3.44°) ne divisait pas 90° ; réglé à
+> **3.6° (= π/50)** côté bonus, soit 25 crans pile pour un quart de tour.
+
 Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
 - **Résolution adaptée au terminal** sans `ioctl` (interdit) : mesure via la
   *réponse de position du curseur* ANSI (`\033[6n`), lue avec `write`/`read`.

@@ -11,8 +11,8 @@
 # define DEF_H 40
 # define MIN_W 20
 # define MIN_H 10
-# define MAX_W 1500
-# define MAX_H 250
+# define MAX_W 90000
+# define MAX_H 90000
 
 /* Bonus couleur — code couleur stocké par cellule : 0..23 = mur (face*6 +
    palier de distance), COL_BG = plafond/sol (fond), COL_WHITE = mini-carte.
@@ -32,7 +32,10 @@
 # define PLANE_LEN 0.5773502691896257
 
 # define MOVE_SPEED 0.10
-# define ROT_SPEED 0.06
+/* Pas de rotation = 3.6° (= pi/50) : diviseur exact de 90°, donc 25 crans pile
+   font un quart de tour -> la caméra peut se réaligner sur les axes du monde
+   (N/S/E/W) en s'arrêtant sur un multiple de 25 crans. */
+# define ROT_SPEED 0.0628318530717959
 # define FRAME_US 16000
 
 /* Bonus resize : re-mesure de la taille tous les RESIZE_POLL frames

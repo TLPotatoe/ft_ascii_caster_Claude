@@ -336,6 +336,15 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   Un `ESC` resté seul sans suite à la frame d'après = sortie (Échap). Découpage :
   `player_bonus.c` ne garde que les *appliers* (`rotate_cam`, `apply_move`,
   `apply_mode`), le flux est parsé dans `input_bonus.c`.
+- **Rotation alignée sur le monde** (`ROT_SPEED`, header bonus) : la direction de
+  départ est déjà sur un axe (N/S/E/W, cf. `set_player`). L'ancien pas `0.06` rad
+  (≈ 3.44°) ne divisait pas 90° (90 / 3.44 ≈ 26.18) → impossible de retomber pile
+  sur un axe en tournant. Réglé à **3.6° = π/50 = `0.0628318530717959`** : diviseur
+  exact de 90° (**25 crans = 90°**, 100 = tour complet), donc l'alignement
+  redevient atteignable en s'arrêtant sur un multiple de 25 crans (pas de snap
+  auto ; dérive flottante négligeable, ~1e-12 rad). Bonus seul ; le mandatoire
+  reste à `0.06`. *N.B. 3.6° ne divise pas 45° (rate les diagonales) ; pour aligner
+  aussi les diagonales il faudrait 3° (π/60) ou 4.5° (π/40).*
 
 Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
 distinguer facilement sous `norminette | grep Error`) :
