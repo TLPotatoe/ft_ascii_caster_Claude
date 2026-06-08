@@ -10,8 +10,8 @@
 
 ## 1. Méthodologie de prompting (côté utilisateur)
 
-Le projet a été conduit en trois temps, par des prompts successifs. Temps total
-estimé : **~1 h 30**.
+Le projet a été conduit en quatre temps, par des prompts successifs. Temps total
+estimé : **~1 h 50**.
 
 ### 1.1 Prompt initial — cadrage & implémentation
 ⏱️ **~25 min mandatory + ~15 min bonus**
@@ -68,6 +68,36 @@ Une fois l'implémentation validée fonctionnellement, demande de mise à la Nor
 > commencer par la partie obligatoire (manda), puis de t'occuper de la partie
 > bonus. »
 
+### 1.4 Prompts « enrichissement du bonus » (post-Norme)
+⏱️ **~20 min**
+
+Une fois le projet livré et normé, une série de prompts a étendu **uniquement le
+bonus** (le mandatoire reste figé sur la résolution fixe imposée). Démarche
+itérative : pour la détection de taille, un **banc d'essai jetable**
+(`sizedetector.c`, hors Norme) a d'abord servi à valider la méthode ANSI contre
+`ioctl` (référence de vérité), avant de l'intégrer.
+
+> « je voudrais que le bonus ait une résolution adaptée au terminal. Terminal
+> grand = grande résolution »
+
+> « on va faire un micro programme de test sans norme juste pour qu'on construise
+> le détecteur de taille du terminal […] le but est de trouver la bonne méthode
+> pour mesurer la taille du terminal »
+
+> « Est-ce qu'on testerait pas de gérer le resize midrun »
+
+> « J'aimerais ajouter des couleurs distinguables par textures tout en gardant
+> les nuances de distances. »
+
+Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
+- **Résolution adaptée au terminal** sans `ioctl` (interdit) : mesure via la
+  *réponse de position du curseur* ANSI (`\033[6n`), lue avec `write`/`read`.
+- **Redimensionnement en cours de jeu** par polling (~0,5 s), faute de `SIGWINCH`
+  (`signal()` interdit) → réallocation des buffers à la volée.
+- **Couleur par face + nuance de distance** : une teinte par texture
+  (N rouge, S vert, E bleu, W jaune), déclinée en 6 nuances de profondeur (ANSI
+  256 couleurs, littéraux fixes).
+
 ---
 
 ## 2. Partie IA — ce que l'agent a réalisé
@@ -99,9 +129,13 @@ Un projet **complet et vérifié**, livrant deux binaires :
 
 ### 2.3 Décisions techniques marquantes
 
-- **Résolution fixe 80×40** : lire la taille réelle du terminal exigerait
-  `ioctl`, hors fonctions autorisées — le sujet autorise une résolution par
-  défaut. Aucune fonction interdite utilisée (pas de `ioctl`/`fcntl`/`ncurses`).
+- **Résolution fixe 80×40 (mandatoire)** : lire la taille réelle du terminal
+  exigerait `ioctl`, hors fonctions autorisées — le sujet autorise une résolution
+  par défaut. Aucune fonction interdite utilisée (pas de `ioctl`/`fcntl`/`ncurses`).
+- **Résolution dynamique (bonus)** : la taille du terminal est mesurée **sans
+  `ioctl`** via la réponse de position du curseur ANSI (`\033[6n`, lue par
+  `write`/`read`), suivie en cours de jeu par polling — terminal grand ⇒ grande
+  résolution. Repli sur 80×40 hors tty.
 - **Lecture non bloquante sans `fcntl`** : `termios` avec `VMIN=0`/`VTIME=0`.
 - **Sortie propre sur interruption** : `signal()` étant interdit, `ISIG` est
   désactivé pour que `Ctrl-C` arrive comme un octet, traité comme une demande de
@@ -121,7 +155,8 @@ Un projet **complet et vérifié**, livrant deux binaires :
   complète (via pseudo-terminal `script`) : **0 octet en usage à la sortie**,
   aucune erreur mémoire, sur les deux binaires.
 - **Rendu** vérifié visuellement (perspective 3D, ombrage par distance côté
-  mandatoire ; faces `N/S/E/W` + mini-carte côté bonus).
+  mandatoire ; faces `N/S/E/W` colorées par texture avec nuance de distance,
+  mini-carte et résolution adaptée au terminal côté bonus).
 
 ### 2.5 Structure du dépôt
 
@@ -134,8 +169,11 @@ ft_ascii_caster/
 │   ├── ft_ascii_caster.h
 │   └── ft_ascii_caster_bonus.h
 ├── maps/classic.map
+├── sizedetector.c           # banc d'essai (hors Norme) : détection de taille
 ├── src/                     # mandatoire (DDA via t_ray, rendu, parsing…)
 ├── src_bonus/               # bonus, fichiers suffixés _bonus
+│                            #   termsize/resize : résolution adaptée au terminal
+│                            #   color/palette   : couleur par face + distance
 └── tests/                   # cartes invalides + run_tests.sh
 ```
 

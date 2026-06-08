@@ -14,7 +14,8 @@ static int	has_map_ext(const char *path)
 		&& path[len - 1] == 'p');
 }
 
-/* Initialise l'état à zéro puis alloue le buffer d'affichage. */
+/* Initialise l'état à zéro ; les buffers sont alloués après la détection de la
+   taille du terminal (cf. realloc_buffers dans resize_bonus.c). */
 static void	init_game(t_game *game)
 {
 	game->map.grid = NULL;
@@ -22,20 +23,30 @@ static void	init_game(t_game *game)
 	game->map.width = 0;
 	game->raw_active = 0;
 	game->running = 1;
-	game->frame = malloc((size_t)(3 + SCR_H * (SCR_W + 1)));
-	if (!game->frame)
-		error_exit(game, "allocation failure");
+	game->scr_w = DEF_W;
+	game->scr_h = DEF_H;
+	game->frame = NULL;
+	game->screen = NULL;
+	game->band = NULL;
 }
 
-/* Boucle principale : lecture clavier -> rendu -> attente,
-	jusqu'à la sortie. */
+/* Boucle principale : lecture clavier -> (re-mesure périodique de la taille du
+	terminal) -> rendu -> attente, jusqu'à la sortie. */
 static void	game_loop(t_game *game)
 {
+	int	tick;
+
+	tick = 0;
 	while (game->running)
 	{
 		handle_input(game);
+		if (tick == 0)
+			handle_resize(game);
 		render_frame(game);
 		usleep(FRAME_US);
+		tick++;
+		if (tick >= RESIZE_POLL)
+			tick = 0;
 	}
 }
 
@@ -54,6 +65,8 @@ int	main(int argc, char **argv)
 	load_map(argv[1], &game);
 	if (term_raw_mode(&game) != 0)
 		error_exit(&game, "cannot set terminal to raw mode");
+	detect_screen_size(&game);
+	realloc_buffers(&game);
 	game_loop(&game);
 	term_restore(&game);
 	free_game(&game);

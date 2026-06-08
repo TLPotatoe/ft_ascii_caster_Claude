@@ -201,7 +201,10 @@ les lignes « Missing or invalid 42 header » (ignorées).
 
 ## 9. Limitations connues
 
-- Taille d'affichage fixe (pas de redimensionnement dynamique du terminal) — cf. A1.
+- **Mandatoire** : taille d'affichage fixe 80×40 (cf. A1). La **version bonus**
+  s'adapte à la taille du terminal (cf. §9bis « Résolution adaptée au terminal »)
+  et **suit le redimensionnement en cours de jeu** par polling (~0,5 s), faute de
+  `SIGWINCH` (cf. §9bis « Redimensionnement en cours de jeu »).
 - Lecture clavier : si plusieurs octets arrivent dans un même `read` (touches très
   rapprochées), seul le premier est interprété par frame (les flèches, séquences
   de 3 octets, restent gérées). Sans impact en jeu réel (≈60 FPS). Volontaire pour
@@ -224,6 +227,56 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
 - **Mini-carte** (`src_bonus/minimap_bonus.c`) : vue 2D en haut-gauche, murs `#`,
   sol `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour temps réel,
   clippée aux bords de l'écran.
+- **Résolution adaptée au terminal** (`src_bonus/termsize_bonus.c`) : le rendu
+  occupe désormais toute la fenêtre — **terminal grand ⇒ grande résolution**. La
+  taille est mesurée à l'exécution **sans `ioctl`** (interdit, cf. A1) via la
+  *réponse de position du curseur* ANSI : on sauve le curseur (`\0337`), on le
+  pousse en bas à droite (`\033[999;999H`, le terminal clampe), on demande sa
+  position (`\033[6n`) et on le restaure (`\0338`) ; le terminal renvoie
+  `\033[lignes;colonnesR` sur stdin — uniquement `write`/`read` (autorisés). La
+  lecture bascule **temporairement** stdin en `VMIN=0`/`VTIME=1` (bloquant borné
+  ~0,1 s, `set_read_timeout`) le temps de capter la réponse, puis revient en
+  `VTIME=0` (non-bloquant) pour le jeu — c'est ce qui fiabilise la mesure (la
+  lecture purement non-bloquante ratait la réponse). Validé d'abord sur un banc
+  d'essai autonome (`sizedetector.c`, hors Norme, comparé à `ioctl` comme vérité).
+  Repli **80×40** si rien ne répond (non-tty) ; bornes `MIN_*`/`MAX_*` pour
+  clamper (et borner l'allocation). Une ligne est réservée (`scr_h = lignes − 1`)
+  pour l'entrée utilisateur et pour absorber le `\n` de fin de rangée. Les
+  dimensions deviennent des **champs runtime** de `t_game` (`scr_w`/`scr_h`) en
+  remplacement des macros `SCR_W`/`SCR_H` ; la grille écran et le buffer de frame
+  sont **alloués après détection** (`realloc_buffers`, libérés par `free_game`) au
+  lieu d'un tableau pile de taille fixe. `t_screen` porte `w`/`h` pour la
+  mini-carte.
+- **Redimensionnement en cours de jeu** (`src_bonus/resize_bonus.c`) : pas de
+  `SIGWINCH` possible (`signal()` interdit) → **polling**. La boucle ré-appelle
+  `measure_size` tous les `RESIZE_POLL` frames (~0,5 s) ; si la taille a changé
+  (`handle_resize`), on **réalloue** les buffers (`realloc_buffers`) et on nettoie
+  l'écran (`\033[2J`). `apply_size` factorise le clamp + la réserve d'une ligne,
+  partagé par la détection initiale et le resize. Coût : la mesure consomme les
+  octets stdin en attente au moment du poll → si une touche est maintenue, un
+  appui peut être avalé toutes les ~0,5 s (stutter négligeable). Note de test : le
+  resize ne se vérifie qu'en **vrai terminal** (un pipe ne répond pas au `\033[6n`
+  en continu, donc `measure_size` échoue et aucun resize n'est déclenché).
+- **Couleur par face + nuance de distance** (`src_bonus/color_bonus.c`,
+  `src_bonus/palette_bonus.c`) : chaque **face** de mur a sa **teinte**
+  (N = rouge, S = vert, E = bleu, W = jaune) — les textures sont ainsi
+  distinguables d'un coup d'œil — et chaque teinte est **déclinée en 6 nuances**
+  selon la distance (proche = clair → loin = sombre), donc les nuances de
+  profondeur sont conservées. La couleur d'une cellule = `cell_color(caractère,
+  palier)` : `dist_band` donne le palier (`<2`, `<4`, `<7`, `<12`, `<20`, sinon —
+  même esprit que A6), `face_index` la teinte, et `face_color` (dans
+  `palette_bonus.c`, une fonction `*_shade` par couleur) renvoie le **littéral
+  ANSI 256 couleurs** (`\033[38;5;Nm`) correspondant. Codes ANSI **fixes** (suite
+  de `if`-`return`) : aucune conversion nombre→chaîne à l'exécution (fidèle à §5).
+  Le code couleur n'est émis que **quand il change** (compression par plages dans
+  `emit_cell`, qui compare le **pointeur** de couleur précédent), reset `\033[0m`
+  en fin de rangée ; toujours **un seul `write`** par frame. La grille écran est
+  portée par `t_screen { char *ch; unsigned char *band; ... }` (caractère + palier
+  par cellule). Plafond/sol = sentinelle `BAND_SPACE` → `cell_color` renvoie
+  `NULL` (pas d'escape, couleur active conservée, invisibles) ; la **mini-carte
+  reste en blanc plein** (`face_index < 0`, non assombrie). `COLOR_LEN` (11)
+  couvre le plus long littéral (`\033[38;5;226m`), buffer `frame` dimensionné en
+  conséquence.
 
 Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
 distinguer facilement sous `norminette | grep Error`) :
@@ -257,6 +310,12 @@ rendu vérifié (faces correctes + mini-carte).
 - [x] Collisions (glissement le long des murs).
 - [x] Orientation des faces (textures ASCII `N`/`S`/`E`/`W`).
 - [x] Mini-carte 2D avec position/orientation du joueur.
+- [x] Couleur par face + nuance de distance (teinte par texture N/S/E/W,
+  déclinée en 6 nuances de profondeur ; ANSI 256 couleurs).
+- [x] Résolution adaptée au terminal (détection ANSI sans `ioctl` ; terminal
+  grand ⇒ grande résolution ; repli 80×40 hors tty).
+- [x] Redimensionnement en cours de jeu (polling ~0,5 s + réallocation, sans
+  `SIGWINCH`).
 
 Projet complet. Pistes éventuelles si demandé : cartes plus grandes, mini-carte
 mise à l'échelle, lissage du rendu.
@@ -274,5 +333,12 @@ mise à l'échelle, lissage du rendu.
   (raw), `raycaster.c` (DDA via `t_ray`), `render.c` (projection/ombrage/flush),
   `player.c` (input), `utils.c`, `main.c`.
 - Code bonus (`src_bonus/`, suffixe `_bonus`) : cœur dupliqué + `render_bonus.c`
-  (faces), `minimap_bonus.c`, `move_bonus.c` (collisions), `player_bonus.c`.
+  (faces), `color_bonus.c` + `palette_bonus.c` (couleur par face + nuance de
+  distance), `minimap_bonus.c`,
+  `move_bonus.c` (collisions), `player_bonus.c`, `termsize_bonus.c` (détection de
+  la taille du terminal sans `ioctl`), `resize_bonus.c` (resize en cours de jeu
+  par polling + réallocation des buffers).
   Header `includes/ft_ascii_caster_bonus.h`.
+- Rendu bonus hors tty à une taille donnée (fournir la réponse curseur) :
+  `printf '\033[40;120Rq' | script -qfc "./ft_ascii_caster_bonus maps/classic.map" out.txt`
+  (ici 120 colonnes × 39 lignes ; sans la réponse `\033[…R`, repli 80×40).

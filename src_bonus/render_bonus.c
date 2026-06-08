@@ -16,61 +16,70 @@ static char	face_char(t_ray *r)
 	return ('S');
 }
 
-/* Déduit les lignes de début/fin du mur depuis la distance (perspective). */
-static void	column_height(t_ray *r, int *start, int *end)
+/* Déduit les lignes de début/fin du mur depuis la distance (perspective).
+   sh = hauteur écran courante (résolution adaptée au terminal). */
+static void	column_height(t_ray *r, int sh, int *start, int *end)
 {
 	int	lh;
 
-	lh = (int)(SCR_H / r->dist);
-	*start = -lh / 2 + SCR_H / 2;
-	*end = lh / 2 + SCR_H / 2;
+	lh = (int)(sh / r->dist);
+	*start = -lh / 2 + sh / 2;
+	*end = lh / 2 + sh / 2;
 	if (*start < 0)
 		*start = 0;
-	if (*end >= SCR_H)
-		*end = SCR_H - 1;
+	if (*end >= sh)
+		*end = sh - 1;
 }
 
 /* Lance le rayon de la colonne sx et remplit la colonne de l'écran avec le
-   caractère de face du mur (plafond/sol en espaces). */
-static void	fill_column(t_game *g, char *screen, int sx)
+   caractère de face du mur + son palier de couleur selon la distance ; le
+   plafond/sol reçoit un espace et la sentinelle BAND_SPACE. */
+static void	fill_column(t_game *g, t_screen *scr, int sx)
 {
 	t_ray	r;
 	int		start;
 	int		end;
 	int		y;
 
-	ray_setup(g, &r, 2.0 * sx / (double)SCR_W - 1.0);
+	ray_setup(g, &r, 2.0 * sx / (double)g->scr_w - 1.0);
 	ray_step(g, &r);
 	ray_cast(g, &r);
-	column_height(&r, &start, &end);
+	column_height(&r, g->scr_h, &start, &end);
 	y = 0;
-	while (y < SCR_H)
+	while (y < g->scr_h)
 	{
 		if (y < start || y > end)
-			screen[y * SCR_W + sx] = ' ';
+		{
+			scr->ch[y * g->scr_w + sx] = ' ';
+			scr->band[y * g->scr_w + sx] = BAND_SPACE;
+		}
 		else
-			screen[y * SCR_W + sx] = face_char(&r);
+		{
+			scr->ch[y * g->scr_w + sx] = face_char(&r);
+			scr->band[y * g->scr_w + sx] = dist_band(r.dist);
+		}
 		y++;
 	}
 }
 
-/* Sérialise la grille écran (curseur en haut + sauts de ligne) et l'écrit. */
-static void	flush_screen(t_game *game, char *screen)
+/* Sérialise la grille écran (curseur en haut, couleur par teinte/nuance, reset
+   + saut de ligne par rangée) et l'écrit en un seul write. */
+static void	flush_screen(t_game *game, t_screen *scr)
 {
-	char	*p;
-	int		x;
-	int		y;
+	char		*p;
+	const char	*prev;
+	int			x;
+	int			y;
 
-	p = game->frame;
-	*p++ = '\033';
-	*p++ = '[';
-	*p++ = 'H';
+	p = append_str(game->frame, "\033[H");
 	y = 0;
-	while (y < SCR_H)
+	while (y < game->scr_h)
 	{
 		x = 0;
-		while (x < SCR_W)
-			*p++ = screen[y * SCR_W + x++];
+		prev = 0;
+		while (x < game->scr_w)
+			p = emit_cell(p, scr, y * game->scr_w + x++, &prev);
+		p = append_str(p, "\033[0m");
 		*p++ = '\n';
 		y++;
 	}
@@ -79,15 +88,19 @@ static void	flush_screen(t_game *game, char *screen)
 
 void	render_frame(t_game *game)
 {
-	char	screen[SCR_W * SCR_H];
-	int		x;
+	t_screen	scr;
+	int			x;
 
+	scr.ch = game->screen;
+	scr.band = game->band;
+	scr.w = game->scr_w;
+	scr.h = game->scr_h;
 	x = 0;
-	while (x < SCR_W)
+	while (x < game->scr_w)
 	{
-		fill_column(game, screen, x);
+		fill_column(game, &scr, x);
 		x++;
 	}
-	draw_minimap(game, screen);
-	flush_screen(game, screen);
+	draw_minimap(game, &scr);
+	flush_screen(game, &scr);
 }
