@@ -48,6 +48,13 @@
 # define KEY_Y 'y'
 # define KEY_U 'u'
 
+/* Accumulateur d'entrée : les octets lus sont parsés par tokens complets (1
+   octet, ou 3 pour une flèche ESC [ C/D). Les octets d'une séquence coupée en
+   fin de lecture sont conservés (inlen) et complétés à la frame suivante, ce
+   qui évite la désynchronisation du flux (queue de flèche lue comme un strafe)
+   quand plusieurs séquences s'accumulent (lag + touche maintenue). */
+# define INBUF 64
+
 /* Bonus mini-carte : marge depuis le coin haut-gauche. */
 # define MM_OX 1
 # define MM_OY 1
@@ -78,6 +85,8 @@ typedef struct s_game
 	char			*screen;
 	unsigned char	*band;
 	unsigned char	*band2;
+	char			inbuf[INBUF];
+	int				inlen;
 }					t_game;
 
 typedef struct s_screen
@@ -188,6 +197,11 @@ void				player_forward(t_game *g, double sign);
 void				player_strafe(t_game *g, double sign);
 
 /* player_bonus.c */
+void				rotate_cam(t_game *g, double a);
+void				apply_move(t_game *g, char c);
+void				apply_mode(t_game *g, char c);
+
+/* input_bonus.c */
 int					handle_input(t_game *game);
 
 /* utils_bonus.c */

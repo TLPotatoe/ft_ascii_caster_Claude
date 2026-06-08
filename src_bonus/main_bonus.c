@@ -30,6 +30,7 @@ static void	init_game(t_game *game)
 	game->screen = NULL;
 	game->band = NULL;
 	game->band2 = NULL;
+	game->inlen = 0;
 }
 
 /* Boucle principale : lecture clavier -> (re-mesure périodique de la taille du

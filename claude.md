@@ -205,10 +205,13 @@ les lignes « Missing or invalid 42 header » (ignorées).
   s'adapte à la taille du terminal (cf. §9bis « Résolution adaptée au terminal »)
   et **suit le redimensionnement en cours de jeu** par polling (~0,5 s), faute de
   `SIGWINCH` (cf. §9bis « Redimensionnement en cours de jeu »).
-- Lecture clavier : si plusieurs octets arrivent dans un même `read` (touches très
-  rapprochées), seul le premier est interprété par frame (les flèches, séquences
-  de 3 octets, restent gérées). Sans impact en jeu réel (≈60 FPS). Volontaire pour
-  garder un parsing d'entrée simple et sûr.
+- Lecture clavier (**mandatoire**) : si plusieurs octets arrivent dans un même
+  `read`, seul le premier est interprété par frame. Sous lag avec une flèche
+  maintenue, la troncature d'une séquence `ESC [ C/D` désynchronise le flux et la
+  queue d'une flèche (`C`/`D`) peut être relue comme un strafe → le joueur dérive.
+  **Corrigé dans la version bonus** : parsing du buffer entier par tokens complets
+  + accumulateur des séquences coupées (cf. §9bis « Parsing d'entrée robuste »).
+  Non rétro-porté au mandatoire, figé à 80×40 (lag rare).
 - Mandatoire : pas de collision (volontaire, cf. A7) → le joueur peut traverser
   les murs. Corrigé dans la **version bonus**.
 
@@ -318,6 +321,21 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   frame. La boucle continue de tourner (poll clavier + `usleep`), le premier tour
   est dessiné d'office (`dirty = 1`). `handle_input`/`handle_resize` sont passés de
   `void`/`0` à un retour `int` signalant le changement.
+- **Parsing d'entrée robuste** (`src_bonus/input_bonus.c`) : une flèche est une
+  **séquence de 3 octets** `ESC [ C/D`. L'ancien `handle_input` lisait jusqu'à 8
+  octets mais n'interprétait que `buf[0..2]` et jetait le reste. Sous lag, une
+  touche maintenue accumule plusieurs séquences ; comme la fenêtre de lecture n'est
+  pas un multiple de 3, une lecture coupait au milieu d'une séquence et la suivante
+  démarrait désynchronisée → le 3e octet d'un `←` (`D`) était relu comme la touche
+  de déplacement `D` (**strafe droite**) : la caméra tourne à gauche **et** le
+  joueur dérive à droite (« tourne en rond »). Fix : `handle_input` lit dans un
+  **accumulateur** (`t_game.inbuf`/`inlen`, `INBUF` octets) et `parse_buffer`
+  consomme le buffer **par tokens complets** (`token_len` : 1 octet, ou 3 pour une
+  flèche) via `apply_token` ; les octets d'une séquence **coupée en fin de lecture**
+  sont conservés et complétés à la frame suivante — plus aucune désynchronisation.
+  Un `ESC` resté seul sans suite à la frame d'après = sortie (Échap). Découpage :
+  `player_bonus.c` ne garde que les *appliers* (`rotate_cam`, `apply_move`,
+  `apply_mode`), le flux est parsé dans `input_bonus.c`.
 
 Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
 distinguer facilement sous `norminette | grep Error`) :
@@ -384,7 +402,8 @@ mise à l'échelle, lissage du rendu.
   `render_quad_bonus.c` + `quadflush_bonus.c` (mode quadrants u),
   `color_bonus.c` + `palette_bonus.c` (couleur par face + nuance de
   distance), `minimap_bonus.c`,
-  `move_bonus.c` (collisions), `player_bonus.c`, `termsize_bonus.c` (détection de
+  `move_bonus.c` (collisions), `player_bonus.c` (appliers rotate/move/mode) +
+  `input_bonus.c` (parsing clavier par tokens + accumulateur), `termsize_bonus.c` (détection de
   la taille du terminal sans `ioctl`), `resize_bonus.c` (resize en cours de jeu
   par polling + réallocation des buffers).
   Header `includes/ft_ascii_caster_bonus.h`.
