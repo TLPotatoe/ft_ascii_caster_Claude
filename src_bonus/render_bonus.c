@@ -1,24 +1,24 @@
 #include "ft_ascii_caster_bonus.h"
 #include <unistd.h>
 
-/* Bonus — caractère selon la FACE du mur touchée par le rayon. Repère y vers le
-   bas : +y = Sud. side 0 = mur vertical (E/W), side 1 = horizontal (N/S). */
-static char	face_char(t_ray *r)
+/* Indice de FACE du mur touché (ordre palette : N=0, S=1, E=2, W=3). Repère y
+   vers le bas (+y = Sud). side 0 = mur vertical (E/W), side 1 = horizontal. */
+int	ray_face(t_ray *r)
 {
 	if (r->side == 0)
 	{
 		if (r->step_x == 1)
-			return ('W');
-		return ('E');
+			return (3);
+		return (2);
 	}
 	if (r->step_y == 1)
-		return ('N');
-	return ('S');
+		return (0);
+	return (1);
 }
 
 /* Déduit les lignes de début/fin du mur depuis la distance (perspective).
-   sh = hauteur écran courante (résolution adaptée au terminal). */
-static void	column_height(t_ray *r, int sh, int *start, int *end)
+   sh = hauteur en "pixels" (= scr_h, ou 2*scr_h en mode demi-bloc). */
+void	column_height(t_ray *r, int sh, int *start, int *end)
 {
 	int	lh;
 
@@ -31,12 +31,13 @@ static void	column_height(t_ray *r, int sh, int *start, int *end)
 		*end = sh - 1;
 }
 
-/* Lance le rayon de la colonne sx et remplit la colonne de l'écran avec le
-   caractère de face du mur + son palier de couleur selon la distance ; le
-   plafond/sol reçoit un espace et la sentinelle BAND_SPACE. */
+/* Lance le rayon de la colonne sx et remplit la colonne : mur -> caractère
+   selon le mode (lettre de face ou densité) + code couleur (face*6 + palier) ;
+   plafond/sol -> espace + COL_BG. */
 static void	fill_column(t_game *g, t_screen *scr, int sx)
 {
 	t_ray	r;
+	int		f;
 	int		start;
 	int		end;
 	int		y;
@@ -44,19 +45,17 @@ static void	fill_column(t_game *g, t_screen *scr, int sx)
 	ray_setup(g, &r, 2.0 * sx / (double)g->scr_w - 1.0);
 	ray_step(g, &r);
 	ray_cast(g, &r);
+	f = ray_face(&r);
 	column_height(&r, g->scr_h, &start, &end);
 	y = 0;
 	while (y < g->scr_h)
 	{
-		if (y < start || y > end)
+		scr->ch[y * g->scr_w + sx] = ' ';
+		scr->band[y * g->scr_w + sx] = COL_BG;
+		if (y >= start && y <= end)
 		{
-			scr->ch[y * g->scr_w + sx] = ' ';
-			scr->band[y * g->scr_w + sx] = BAND_SPACE;
-		}
-		else
-		{
-			scr->ch[y * g->scr_w + sx] = face_char(&r);
-			scr->band[y * g->scr_w + sx] = dist_band(r.dist);
+			scr->ch[y * g->scr_w + sx] = wall_glyph(g, f, r.dist);
+			scr->band[y * g->scr_w + sx] = f * 6 + dist_band(r.dist);
 		}
 		y++;
 	}
@@ -86,13 +85,20 @@ static void	flush_screen(t_game *game, t_screen *scr)
 	write(1, game->frame, (size_t)(p - game->frame));
 }
 
+/* Modes lettres (r) et densité (t) ; le demi-bloc (y) a son propre rendu. */
 void	render_frame(t_game *game)
 {
 	t_screen	scr;
 	int			x;
 
+	if (game->mode == MODE_HALF)
+	{
+		render_half(game);
+		return ;
+	}
 	scr.ch = game->screen;
 	scr.band = game->band;
+	scr.band2 = game->band2;
 	scr.w = game->scr_w;
 	scr.h = game->scr_h;
 	x = 0;

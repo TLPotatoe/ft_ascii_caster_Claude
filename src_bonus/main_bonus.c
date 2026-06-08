@@ -25,9 +25,11 @@ static void	init_game(t_game *game)
 	game->running = 1;
 	game->scr_w = DEF_W;
 	game->scr_h = DEF_H;
+	game->mode = MODE_FACE;
 	game->frame = NULL;
 	game->screen = NULL;
 	game->band = NULL;
+	game->band2 = NULL;
 }
 
 /* Boucle principale : lecture clavier -> (re-mesure périodique de la taille du

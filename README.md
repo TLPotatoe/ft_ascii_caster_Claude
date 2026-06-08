@@ -11,7 +11,7 @@
 ## 1. Méthodologie de prompting (côté utilisateur)
 
 Le projet a été conduit en quatre temps, par des prompts successifs. Temps total
-estimé : **~1 h 50**.
+estimé : **~2 h 10**.
 
 ### 1.1 Prompt initial — cadrage & implémentation
 ⏱️ **~25 min mandatory + ~15 min bonus**
@@ -69,12 +69,12 @@ Une fois l'implémentation validée fonctionnellement, demande de mise à la Nor
 > bonus. »
 
 ### 1.4 Prompts « enrichissement du bonus » (post-Norme)
-⏱️ **~20 min**
+⏱️ **~40 min**
 
 Une fois le projet livré et normé, une série de prompts a étendu **uniquement le
 bonus** (le mandatoire reste figé sur la résolution fixe imposée). Démarche
-itérative : pour la détection de taille, un **banc d'essai jetable**
-(`sizedetector.c`, hors Norme) a d'abord servi à valider la méthode ANSI contre
+itérative : pour la détection de taille, un **banc d'essai jetable** (hors Norme,
+non conservé dans le dépôt) a d'abord servi à valider la méthode ANSI contre
 `ioctl` (référence de vérité), avant de l'intégrer.
 
 > « je voudrais que le bonus ait une résolution adaptée au terminal. Terminal
@@ -89,6 +89,11 @@ itérative : pour la détection de taille, un **banc d'essai jetable**
 > « J'aimerais ajouter des couleurs distinguables par textures tout en gardant
 > les nuances de distances. »
 
+> « quand j'appuie sur r → mode actuel (N/W/E/S en couleur) ; sur t → ancien mode
+> mandatory sans restriction de caractères (en gardant les couleurs/gradient) ;
+> sur y → un mode résolution avec ▄ █ ▌ et un jeu background/foreground pour
+> doubler la résolution sans changer celle du terminal. »
+
 Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
 - **Résolution adaptée au terminal** sans `ioctl` (interdit) : mesure via la
   *réponse de position du curseur* ANSI (`\033[6n`), lue avec `write`/`read`.
@@ -97,6 +102,9 @@ Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
 - **Couleur par face + nuance de distance** : une teinte par texture
   (N rouge, S vert, E bleu, W jaune), déclinée en 6 nuances de profondeur (ANSI
   256 couleurs, littéraux fixes).
+- **Trois modes de rendu commutables** (`r`/`t`/`y`) : lettres colorées, densité
+  colorée (rampe libre), et **demi-bloc** `▀`/`▄` qui double la résolution
+  verticale via un jeu avant-plan/arrière-plan sans changer la taille du terminal.
 
 ---
 
@@ -169,11 +177,11 @@ ft_ascii_caster/
 │   ├── ft_ascii_caster.h
 │   └── ft_ascii_caster_bonus.h
 ├── maps/classic.map
-├── sizedetector.c           # banc d'essai (hors Norme) : détection de taille
 ├── src/                     # mandatoire (DDA via t_ray, rendu, parsing…)
 ├── src_bonus/               # bonus, fichiers suffixés _bonus
 │                            #   termsize/resize : résolution adaptée au terminal
 │                            #   color/palette   : couleur par face + distance
+│                            #   glyph/render_half/halfflush : modes r/t/y
 └── tests/                   # cartes invalides + run_tests.sh
 ```
 
@@ -186,7 +194,8 @@ sh tests/run_tests.sh                                          # tests de parsin
 ```
 
 **Contrôles** : `W`/`A`/`S`/`D` se déplacer · flèches `←`/`→` pivoter ·
-`q` / `Échap` / `Ctrl-C` quitter.
+`q` / `Échap` / `Ctrl-C` quitter. **Bonus — modes de rendu** : `r` lettres
+colorées · `t` densité colorée · `y` demi-bloc (≈2× la résolution verticale).
 
 ---
 

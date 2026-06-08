@@ -21,7 +21,8 @@ static void	put_cell(t_screen *scr, int sx, int sy, char c)
 	if (sx < 0 || sx >= scr->w || sy < 0 || sy >= scr->h)
 		return ;
 	scr->ch[sy * scr->w + sx] = c;
-	scr->band[sy * scr->w + sx] = 0;
+	scr->band[sy * scr->w + sx] = COL_WHITE;
+	scr->band2[sy * scr->w + sx] = COL_BG;
 }
 
 /* Bonus — mini-carte 2D en haut à gauche : murs '#', sol '.', joueur fléché.

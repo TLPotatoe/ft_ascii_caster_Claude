@@ -43,6 +43,18 @@ static void	handle_move(t_game *game, char c)
 		player_strafe(game, 1.0);
 }
 
+/* Touches de mode de rendu : r = lettres couleur, t = densité couleur,
+   y = demi-bloc (double résolution verticale). */
+static void	handle_mode(t_game *game, char c)
+{
+	if (c == KEY_R)
+		game->mode = MODE_FACE;
+	else if (c == KEY_T)
+		game->mode = MODE_SHADE;
+	else if (c == KEY_Y)
+		game->mode = MODE_HALF;
+}
+
 /* Lit les touches disponibles (non bloquant) et met à jour l'état du jeu. */
 int	handle_input(t_game *game)
 {
@@ -58,6 +70,8 @@ int	handle_input(t_game *game)
 	c = buf[0];
 	if (c == KEY_CTRL_C || c == KEY_CTRL_D || c == KEY_Q)
 		game->running = 0;
+	else if (c == KEY_R || c == KEY_T || c == KEY_Y)
+		handle_mode(game, c);
 	else
 		handle_move(game, c);
 	return (0);

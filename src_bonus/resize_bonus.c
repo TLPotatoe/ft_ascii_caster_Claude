@@ -19,22 +19,23 @@ void	apply_size(t_game *g, int cols, int rows)
 	g->scr_h = rows;
 }
 
-/* (Ré)alloue la grille écran et le buffer de frame pour la résolution courante.
-   free(NULL) étant sûr, sert aussi à l'allocation initiale. Pire cas du buffer :
-   un escape couleur par cellule + reset/saut de ligne par rangée. */
+/* (Ré)alloue les grilles écran (caractère + 2 codes couleur pour le demi-bloc)
+   et le buffer de frame. free(NULL) étant sûr, sert aussi à l'allocation
+   initiale. Pire cas par cellule : CELL_MAX octets (mode demi-bloc). */
 void	realloc_buffers(t_game *g)
 {
 	size_t	cells;
 
 	free(g->screen);
 	free(g->band);
+	free(g->band2);
 	free(g->frame);
 	cells = (size_t)g->scr_w * (size_t)g->scr_h;
 	g->screen = malloc(cells);
 	g->band = malloc(cells);
-	g->frame = malloc((size_t)(3 + g->scr_h
-				* (g->scr_w * (COLOR_LEN + 1) + 6)));
-	if (!g->screen || !g->band || !g->frame)
+	g->band2 = malloc(cells);
+	g->frame = malloc((size_t)(3 + g->scr_h * (g->scr_w * CELL_MAX + 6)));
+	if (!g->screen || !g->band || !g->band2 || !g->frame)
 		error_exit(g, "allocation failure");
 }
 

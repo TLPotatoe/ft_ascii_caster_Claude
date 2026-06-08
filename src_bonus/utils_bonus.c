@@ -41,8 +41,10 @@ void	free_game(t_game *game)
 	}
 	free(game->screen);
 	free(game->band);
+	free(game->band2);
 	game->screen = NULL;
 	game->band = NULL;
+	game->band2 = NULL;
 }
 
 /* Affiche "Error\n" + message, libère tout, restaure le terminal, quitte. */

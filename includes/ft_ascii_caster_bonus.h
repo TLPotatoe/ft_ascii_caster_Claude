@@ -14,11 +14,18 @@
 # define MAX_W 800
 # define MAX_H 400
 
-/* Bonus couleur : sentinelle plafond/sol et taille max d'un escape ANSI
-   (\033[38;5;NNNm). Le buffer de frame est dimensionné dans main_bonus.c
-   (pire cas : un escape par cellule + reset/saut de ligne par rangée). */
-# define BAND_SPACE 9
-# define COLOR_LEN 11
+/* Bonus couleur — code couleur stocké par cellule : 0..23 = mur (face*6 +
+   palier de distance), COL_BG = plafond/sol (fond), COL_WHITE = mini-carte.
+   CELL_MAX borne le pire cas d'octets par cellule (mode demi-bloc : avant-plan
+   + arrière-plan + glyphe 3 octets) pour dimensionner frame. */
+# define COL_BG 30
+# define COL_WHITE 31
+# define CELL_MAX 26
+
+/* Modes de rendu (touches r/t/y). */
+# define MODE_FACE 0
+# define MODE_SHADE 1
+# define MODE_HALF 2
 
 /* Champ de vision ~60° -> longueur du plan caméra = tan(30°). */
 # define PLANE_LEN 0.5773502691896257
@@ -35,6 +42,9 @@
 # define KEY_Q 'q'
 # define KEY_CTRL_C 3
 # define KEY_CTRL_D 4
+# define KEY_R 'r'
+# define KEY_T 't'
+# define KEY_Y 'y'
 
 /* Bonus mini-carte : marge depuis le coin haut-gauche. */
 # define MM_OX 1
@@ -61,18 +71,27 @@ typedef struct s_game
 	int				running;
 	int				scr_w;
 	int				scr_h;
+	int				mode;
 	char			*frame;
 	char			*screen;
 	unsigned char	*band;
+	unsigned char	*band2;
 }					t_game;
 
 typedef struct s_screen
 {
 	char			*ch;
 	unsigned char	*band;
+	unsigned char	*band2;
 	int				w;
 	int				h;
 }					t_screen;
+
+typedef struct s_prev
+{
+	int				fg;
+	int				bg;
+}					t_prev;
 
 typedef struct s_ray
 {
@@ -121,11 +140,23 @@ void				ray_step(t_game *g, t_ray *r);
 void				ray_cast(t_game *g, t_ray *r);
 
 /* render_bonus.c */
+int					ray_face(t_ray *r);
+void				column_height(t_ray *r, int sh, int *start, int *end);
 void				render_frame(t_game *game);
+
+/* glyph_bonus.c */
+char				wall_glyph(t_game *g, int f, double dist);
+
+/* render_half_bonus.c */
+void				render_half(t_game *game);
+
+/* halfflush_bonus.c */
+void				flush_half(t_game *game, t_screen *scr);
 
 /* color_bonus.c */
 int					dist_band(double dist);
-const char			*cell_color(char ch, int band);
+const char			*cell_color(int code);
+const char			*code_fg(int code);
 char				*append_str(char *p, const char *s);
 char				*emit_cell(char *p, t_screen *s, int idx, const char **pv);
 

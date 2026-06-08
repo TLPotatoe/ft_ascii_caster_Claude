@@ -221,9 +221,10 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
 
 - **Collisions** (`src_bonus/move_bonus.c`) : déplacement testé axe par axe
   (`try_move`) → glissement le long des murs, pas d'arrêt net, pas de traversée.
-- **Textures par face** (`src_bonus/render_bonus.c`, `face_char`) : le caractère
-  du mur dépend de la face touchée par le rayon — `N`/`S` (murs horizontaux selon
-  `step` en y), `E`/`W` (murs verticaux selon `step` en x). Remplace l'ombrage.
+- **Textures par face** (`src_bonus/render_bonus.c`, `ray_face`) : la face touchée
+  par le rayon donne un indice 0..3 — `N`/`S` (murs horizontaux selon `step` en
+  y), `E`/`W` (murs verticaux selon `step` en x) — qui pilote à la fois le
+  caractère (mode lettres) et la teinte (couleur). Ordre aligné sur la palette.
 - **Mini-carte** (`src_bonus/minimap_bonus.c`) : vue 2D en haut-gauche, murs `#`,
   sol `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour temps réel,
   clippée aux bords de l'écran.
@@ -238,7 +239,7 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   ~0,1 s, `set_read_timeout`) le temps de capter la réponse, puis revient en
   `VTIME=0` (non-bloquant) pour le jeu — c'est ce qui fiabilise la mesure (la
   lecture purement non-bloquante ratait la réponse). Validé d'abord sur un banc
-  d'essai autonome (`sizedetector.c`, hors Norme, comparé à `ioctl` comme vérité).
+  d'essai jetable (hors Norme, comparé à `ioctl` comme vérité ; non conservé).
   Repli **80×40** si rien ne répond (non-tty) ; bornes `MIN_*`/`MAX_*` pour
   clamper (et borner l'allocation). Une ligne est réservée (`scr_h = lignes − 1`)
   pour l'entrée utilisateur et pour absorber le `\n` de fin de rangée. Les
@@ -259,24 +260,37 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   en continu, donc `measure_size` échoue et aucun resize n'est déclenché).
 - **Couleur par face + nuance de distance** (`src_bonus/color_bonus.c`,
   `src_bonus/palette_bonus.c`) : chaque **face** de mur a sa **teinte**
-  (N = rouge, S = vert, E = bleu, W = jaune) — les textures sont ainsi
-  distinguables d'un coup d'œil — et chaque teinte est **déclinée en 6 nuances**
-  selon la distance (proche = clair → loin = sombre), donc les nuances de
-  profondeur sont conservées. La couleur d'une cellule = `cell_color(caractère,
-  palier)` : `dist_band` donne le palier (`<2`, `<4`, `<7`, `<12`, `<20`, sinon —
-  même esprit que A6), `face_index` la teinte, et `face_color` (dans
-  `palette_bonus.c`, une fonction `*_shade` par couleur) renvoie le **littéral
-  ANSI 256 couleurs** (`\033[38;5;Nm`) correspondant. Codes ANSI **fixes** (suite
-  de `if`-`return`) : aucune conversion nombre→chaîne à l'exécution (fidèle à §5).
-  Le code couleur n'est émis que **quand il change** (compression par plages dans
-  `emit_cell`, qui compare le **pointeur** de couleur précédent), reset `\033[0m`
-  en fin de rangée ; toujours **un seul `write`** par frame. La grille écran est
-  portée par `t_screen { char *ch; unsigned char *band; ... }` (caractère + palier
-  par cellule). Plafond/sol = sentinelle `BAND_SPACE` → `cell_color` renvoie
-  `NULL` (pas d'escape, couleur active conservée, invisibles) ; la **mini-carte
-  reste en blanc plein** (`face_index < 0`, non assombrie). `COLOR_LEN` (11)
-  couvre le plus long littéral (`\033[38;5;226m`), buffer `frame` dimensionné en
-  conséquence.
+  (N = rouge, S = vert, E = bleu, W = jaune) — textures distinguables d'un coup
+  d'œil — et chaque teinte est **déclinée en 6 nuances** selon la distance
+  (proche = clair → loin = sombre). Chaque cellule stocke un **code couleur** sur
+  un octet (`t_screen.band`) : `0..23` pour un mur (`face*6 + dist_band`), `COL_BG`
+  (30) pour le plafond/sol, `COL_WHITE` (31) pour la mini-carte. `cell_color(code)`
+  traduit ce code en **littéral ANSI 256 couleurs** via `face_color` (dans
+  `palette_bonus.c`, une fonction `*_shade` par couleur) ; codes ANSI **fixes**
+  (suite de `if`-`return`), aucune conversion nombre→chaîne (fidèle à §5). Émis
+  seulement **quand il change** (compression par plages, `emit_cell` compare le
+  **pointeur** de couleur), reset `\033[0m` par rangée, **un seul `write`** par
+  frame. Plafond/sol → `cell_color` renvoie `NULL` (pas d'escape, espaces
+  invisibles) ; mini-carte en **blanc plein**.
+- **Trois modes de rendu** (touches `r` / `t` / `y`, champ `t_game.mode`) :
+  - **`r` — lettres couleur** (défaut, `MODE_FACE`) : `N`/`S`/`E`/`W` colorés par
+    teinte de face + nuance de distance (le mode décrit ci-dessus).
+  - **`t` — densité couleur** (`MODE_SHADE`, `src_bonus/glyph_bonus.c`) : reprend
+    l'esprit de l'ombrage mandatoire **sans restriction de caractères** (rampe
+    libre `@#%*+=~:-.` choisie par distance, `shade_char`), tout en gardant la
+    **couleur de face + gradient** (le caractère encode finement la distance, la
+    couleur la face + le palier).
+  - **`y` — demi-bloc** (`MODE_HALF`, `render_half_bonus.c` + `halfflush_bonus.c`) :
+    **~2× la résolution verticale sans changer la taille du terminal**. Chaque
+    cellule = **2 pixels verticaux** rendus avec `▀`/`▄` (U+2580/U+2584) et un jeu
+    **avant-plan/arrière-plan** : la moitié haute prend la couleur d'avant-plan, la
+    moitié basse celle d'arrière-plan. La hauteur de colonne est calculée en
+    `2*scr_h` pixels ; `band` = code couleur du pixel haut, `band2` = code du pixel
+    bas. Les littéraux d'arrière-plan (`\033[48;5;Nm`) sont obtenus en recopiant le
+    littéral d'avant-plan en **inversant le `3` en `4`** (`append_bg`) — pas de
+    nouveaux littéraux ni de conversion de nombre. La mini-carte reste superposée
+    en glyphes pleins. `CELL_MAX` (26) borne le pire cas d'octets/cellule (fg + bg
+    + glyphe 3 octets) pour dimensionner `frame`.
 
 Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
 distinguer facilement sous `norminette | grep Error`) :
@@ -312,6 +326,8 @@ rendu vérifié (faces correctes + mini-carte).
 - [x] Mini-carte 2D avec position/orientation du joueur.
 - [x] Couleur par face + nuance de distance (teinte par texture N/S/E/W,
   déclinée en 6 nuances de profondeur ; ANSI 256 couleurs).
+- [x] Trois modes de rendu commutables (`r` lettres couleur, `t` densité couleur,
+  `y` demi-bloc ~2× la résolution verticale via `▀`/`▄` + fond/avant-plan).
 - [x] Résolution adaptée au terminal (détection ANSI sans `ioctl` ; terminal
   grand ⇒ grande résolution ; repli 80×40 hors tty).
 - [x] Redimensionnement en cours de jeu (polling ~0,5 s + réallocation, sans
@@ -333,7 +349,9 @@ mise à l'échelle, lissage du rendu.
   (raw), `raycaster.c` (DDA via `t_ray`), `render.c` (projection/ombrage/flush),
   `player.c` (input), `utils.c`, `main.c`.
 - Code bonus (`src_bonus/`, suffixe `_bonus`) : cœur dupliqué + `render_bonus.c`
-  (faces), `color_bonus.c` + `palette_bonus.c` (couleur par face + nuance de
+  (faces + modes r/t), `glyph_bonus.c` (caractère selon le mode),
+  `render_half_bonus.c` + `halfflush_bonus.c` (mode demi-bloc y),
+  `color_bonus.c` + `palette_bonus.c` (couleur par face + nuance de
   distance), `minimap_bonus.c`,
   `move_bonus.c` (collisions), `player_bonus.c`, `termsize_bonus.c` (détection de
   la taille du terminal sans `ioctl`), `resize_bonus.c` (resize en cours de jeu
