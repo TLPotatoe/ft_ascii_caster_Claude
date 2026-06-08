@@ -15,6 +15,7 @@ BSRCS		= main_bonus.c parse_read_bonus.c parse_map_bonus.c \
 			  parse_check_bonus.c map_closed_bonus.c terminal_bonus.c \
 			  termsize_bonus.c resize_bonus.c raycaster_bonus.c \
 			  render_bonus.c render_half_bonus.c halfflush_bonus.c \
+			  render_quad_bonus.c quadflush_bonus.c \
 			  glyph_bonus.c color_bonus.c palette_bonus.c minimap_bonus.c \
 			  move_bonus.c player_bonus.c utils_bonus.c
 BOBJS		= $(addprefix $(BSRC_DIR)/, $(BSRCS:.c=.o))

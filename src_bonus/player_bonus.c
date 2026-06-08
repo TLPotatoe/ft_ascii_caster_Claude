@@ -44,7 +44,8 @@ static void	handle_move(t_game *game, char c)
 }
 
 /* Touches de mode de rendu : r = lettres couleur, t = densité couleur,
-   y = demi-bloc (double résolution verticale). */
+   y = demi-bloc (double résolution verticale), u = quadrants (double les deux
+   axes). */
 static void	handle_mode(t_game *game, char c)
 {
 	if (c == KEY_R)
@@ -53,9 +54,13 @@ static void	handle_mode(t_game *game, char c)
 		game->mode = MODE_SHADE;
 	else if (c == KEY_Y)
 		game->mode = MODE_HALF;
+	else if (c == KEY_U)
+		game->mode = MODE_QUAD;
 }
 
-/* Lit les touches disponibles (non bloquant) et met à jour l'état du jeu. */
+/* Lit les touches disponibles (non bloquant) et met à jour l'état du jeu.
+   Renvoie 1 si une touche a été lue (la frame doit être redessinée), 0 sinon
+   (aucune entrée -> aucun changement, on ne redessine pas). */
 int	handle_input(t_game *game)
 {
 	char	buf[8];
@@ -66,13 +71,13 @@ int	handle_input(t_game *game)
 	if (n <= 0)
 		return (0);
 	if (buf[0] == KEY_ESC)
-		return (handle_escape(game, buf, n), 0);
+		return (handle_escape(game, buf, n), 1);
 	c = buf[0];
 	if (c == KEY_CTRL_C || c == KEY_CTRL_D || c == KEY_Q)
 		game->running = 0;
-	else if (c == KEY_R || c == KEY_T || c == KEY_Y)
+	else if (c == KEY_R || c == KEY_T || c == KEY_Y || c == KEY_U)
 		handle_mode(game, c);
 	else
 		handle_move(game, c);
-	return (0);
+	return (1);
 }

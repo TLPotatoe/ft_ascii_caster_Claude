@@ -94,6 +94,15 @@ non conservé dans le dépôt) a d'abord servi à valider la méthode ANSI contr
 > sur y → un mode résolution avec ▄ █ ▌ et un jeu background/foreground pour
 > doubler la résolution sans changer celle du terminal. »
 
+> « pour le mode y, des caractères/une méthode pour réduire l'écart entre les
+> pixels ? » → ajout d'un mode **`u` quadrants** (2×2 sous-pixels par cellule,
+> double les deux axes, glyphe choisi par couverture). Cf. discussion dans
+> [`claude.md`](claude.md) §9bis.
+
+> « attendre une entrée utilisateur avant d'update la frame, pas d'entrée = pas
+> de changement, pas besoin d'update. » → rendu **paresseux** : la frame n'est
+> resérialisée et réécrite que sur entrée clavier ou resize.
+
 Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
 - **Résolution adaptée au terminal** sans `ioctl` (interdit) : mesure via la
   *réponse de position du curseur* ANSI (`\033[6n`), lue avec `write`/`read`.
@@ -102,9 +111,13 @@ Résultat (détaillé dans [`claude.md`](claude.md) §9bis) :
 - **Couleur par face + nuance de distance** : une teinte par texture
   (N rouge, S vert, E bleu, W jaune), déclinée en 6 nuances de profondeur (ANSI
   256 couleurs, littéraux fixes).
-- **Trois modes de rendu commutables** (`r`/`t`/`y`) : lettres colorées, densité
-  colorée (rampe libre), et **demi-bloc** `▀`/`▄` qui double la résolution
-  verticale via un jeu avant-plan/arrière-plan sans changer la taille du terminal.
+- **Quatre modes de rendu commutables** (`r`/`t`/`y`/`u`) : lettres colorées,
+  densité colorée (rampe libre), **demi-bloc** `▀`/`▄` qui double la résolution
+  verticale via un jeu avant-plan/arrière-plan, et **quadrants** `▖▗▘▝▌▐▀▄█…` qui
+  doublent les deux axes (2×2 sous-pixels par cellule, glyphe par couverture),
+  tout cela sans changer la taille du terminal.
+- **Rendu paresseux** : la frame n'est resérialisée/réécrite que sur entrée
+  clavier ou resize — sans entrée, rien ne change donc rien n'est redessiné.
 
 ---
 
@@ -182,6 +195,7 @@ ft_ascii_caster/
 │                            #   termsize/resize : résolution adaptée au terminal
 │                            #   color/palette   : couleur par face + distance
 │                            #   glyph/render_half/halfflush : modes r/t/y
+│                            #   render_quad/quadflush : mode u (quadrants)
 └── tests/                   # cartes invalides + run_tests.sh
 ```
 
@@ -195,7 +209,8 @@ sh tests/run_tests.sh                                          # tests de parsin
 
 **Contrôles** : `W`/`A`/`S`/`D` se déplacer · flèches `←`/`→` pivoter ·
 `q` / `Échap` / `Ctrl-C` quitter. **Bonus — modes de rendu** : `r` lettres
-colorées · `t` densité colorée · `y` demi-bloc (≈2× la résolution verticale).
+colorées · `t` densité colorée · `y` demi-bloc (≈2× la résolution verticale) ·
+`u` quadrants (≈2× les deux axes).
 
 ---
 

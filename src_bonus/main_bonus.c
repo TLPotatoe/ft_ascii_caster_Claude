@@ -33,18 +33,26 @@ static void	init_game(t_game *game)
 }
 
 /* Boucle principale : lecture clavier -> (re-mesure périodique de la taille du
-	terminal) -> rendu -> attente, jusqu'à la sortie. */
+	terminal) -> rendu -> attente, jusqu'à la sortie. La frame n'est redessinée
+	que si une entrée ou un resize a modifié l'état (dirty) ; sans entrée rien ne
+	change, on évite donc le coût de sérialisation + write. Premier tour dessiné
+	d'office (dirty = 1). */
 static void	game_loop(t_game *game)
 {
 	int	tick;
+	int	dirty;
 
 	tick = 0;
+	dirty = 1;
 	while (game->running)
 	{
-		handle_input(game);
-		if (tick == 0)
-			handle_resize(game);
-		render_frame(game);
+		if (handle_input(game))
+			dirty = 1;
+		if (tick == 0 && handle_resize(game))
+			dirty = 1;
+		if (dirty)
+			render_frame(game);
+		dirty = 0;
 		usleep(FRAME_US);
 		tick++;
 		if (tick >= RESIZE_POLL)

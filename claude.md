@@ -272,7 +272,7 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   **pointeur** de couleur), reset `\033[0m` par rangée, **un seul `write`** par
   frame. Plafond/sol → `cell_color` renvoie `NULL` (pas d'escape, espaces
   invisibles) ; mini-carte en **blanc plein**.
-- **Trois modes de rendu** (touches `r` / `t` / `y`, champ `t_game.mode`) :
+- **Quatre modes de rendu** (touches `r` / `t` / `y` / `u`, champ `t_game.mode`) :
   - **`r` — lettres couleur** (défaut, `MODE_FACE`) : `N`/`S`/`E`/`W` colorés par
     teinte de face + nuance de distance (le mode décrit ci-dessus).
   - **`t` — densité couleur** (`MODE_SHADE`, `src_bonus/glyph_bonus.c`) : reprend
@@ -291,6 +291,33 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
     nouveaux littéraux ni de conversion de nombre. La mini-carte reste superposée
     en glyphes pleins. `CELL_MAX` (26) borne le pire cas d'octets/cellule (fg + bg
     + glyphe 3 octets) pour dimensionner `frame`.
+  - **`u` — quadrants** (`MODE_QUAD`, `render_quad_bonus.c` + `quadflush_bonus.c`) :
+    **~2× la résolution sur les *deux* axes** sans changer la taille du terminal.
+    Chaque cellule = **2×2 sous-pixels** ; l'horizontale est échantillonnée au
+    double (2 sous-colonnes de rayons par cellule, `cast_sub`) et le vertical au
+    double (intervalle de mur en `2*scr_h`, comme le demi-bloc). Le glyphe est
+    choisi **par couverture** : un masque 4 bits (TL/TR/BL/BR, `cell_mask`) indexe
+    les 16 **blocs de quadrant** Unicode (espace + `▖▗▘▝▌▐▀▄▙▟▛▜▚▞█`,
+    `quad_glyph`). Avantages vs `y` : les blocs de quadrant (Block Elements) sont
+    **pavés proprement** (portables), et la *négative space* du glyphe prend le
+    **fond du terminal** — qui sert directement de plafond/sol, donc **aucun
+    littéral d'arrière-plan à émettre** (plus simple que `y`). Couleur : teinte de
+    la sous-colonne gauche si elle porte du mur, sinon droite, sinon fond
+    (`put_cell`) — un quadrant étant mono-couleur, une seule teinte par cellule.
+    La frame réutilise `CELL_MAX` (fg + glyphe 3 octets ≤ 14 < 26). Limite
+    assumée : à une arête intérieure entre deux murs de profondeurs différentes,
+    la cellule ne garde qu'une teinte. *Glyphes justifiés en discussion : `◢◣◤◥`
+    (Geometric Shapes) écartés — non pavés par beaucoup de fontes, et utiles
+    seulement aux arêtes diagonales alors que l'escalier d'un raycaster est
+    horizontal.*
+- **Rendu paresseux** (`src_bonus/main_bonus.c`, `game_loop`) : la frame n'est
+  resérialisée et réécrite (`render_frame`) **que si l'état a changé** — flag
+  `dirty` armé par `handle_input` (renvoie 1 si une touche a été lue) ou
+  `handle_resize` (renvoie 1 si la taille a changé). Sans entrée, rien ne change
+  donc rien n'est redessiné : on évite le coût de sérialisation + `write` à chaque
+  frame. La boucle continue de tourner (poll clavier + `usleep`), le premier tour
+  est dessiné d'office (`dirty = 1`). `handle_input`/`handle_resize` sont passés de
+  `void`/`0` à un retour `int` signalant le changement.
 
 Organisation (tous les fichiers bonus portent le suffixe **`_bonus`** pour les
 distinguer facilement sous `norminette | grep Error`) :
@@ -326,8 +353,11 @@ rendu vérifié (faces correctes + mini-carte).
 - [x] Mini-carte 2D avec position/orientation du joueur.
 - [x] Couleur par face + nuance de distance (teinte par texture N/S/E/W,
   déclinée en 6 nuances de profondeur ; ANSI 256 couleurs).
-- [x] Trois modes de rendu commutables (`r` lettres couleur, `t` densité couleur,
-  `y` demi-bloc ~2× la résolution verticale via `▀`/`▄` + fond/avant-plan).
+- [x] Quatre modes de rendu commutables (`r` lettres couleur, `t` densité couleur,
+  `y` demi-bloc ~2× la résolution verticale via `▀`/`▄` + fond/avant-plan,
+  `u` quadrants ~2× les deux axes via blocs de quadrant + glyphe par couverture).
+- [x] Rendu paresseux : la frame n'est redessinée que sur entrée clavier/resize
+  (flag `dirty` ; sans entrée, aucun redraw).
 - [x] Résolution adaptée au terminal (détection ANSI sans `ioctl` ; terminal
   grand ⇒ grande résolution ; repli 80×40 hors tty).
 - [x] Redimensionnement en cours de jeu (polling ~0,5 s + réallocation, sans
@@ -351,6 +381,7 @@ mise à l'échelle, lissage du rendu.
 - Code bonus (`src_bonus/`, suffixe `_bonus`) : cœur dupliqué + `render_bonus.c`
   (faces + modes r/t), `glyph_bonus.c` (caractère selon le mode),
   `render_half_bonus.c` + `halfflush_bonus.c` (mode demi-bloc y),
+  `render_quad_bonus.c` + `quadflush_bonus.c` (mode quadrants u),
   `color_bonus.c` + `palette_bonus.c` (couleur par face + nuance de
   distance), `minimap_bonus.c`,
   `move_bonus.c` (collisions), `player_bonus.c`, `termsize_bonus.c` (détection de

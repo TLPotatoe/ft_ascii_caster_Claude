@@ -11,8 +11,8 @@
 # define DEF_H 40
 # define MIN_W 20
 # define MIN_H 10
-# define MAX_W 800
-# define MAX_H 400
+# define MAX_W 1500
+# define MAX_H 250
 
 /* Bonus couleur — code couleur stocké par cellule : 0..23 = mur (face*6 +
    palier de distance), COL_BG = plafond/sol (fond), COL_WHITE = mini-carte.
@@ -22,10 +22,11 @@
 # define COL_WHITE 31
 # define CELL_MAX 26
 
-/* Modes de rendu (touches r/t/y). */
+/* Modes de rendu (touches r/t/y/u). */
 # define MODE_FACE 0
 # define MODE_SHADE 1
 # define MODE_HALF 2
+# define MODE_QUAD 3
 
 /* Champ de vision ~60° -> longueur du plan caméra = tan(30°). */
 # define PLANE_LEN 0.5773502691896257
@@ -45,6 +46,7 @@
 # define KEY_R 'r'
 # define KEY_T 't'
 # define KEY_Y 'y'
+# define KEY_U 'u'
 
 /* Bonus mini-carte : marge depuis le coin haut-gauche. */
 # define MM_OX 1
@@ -93,6 +95,15 @@ typedef struct s_prev
 	int				bg;
 }					t_prev;
 
+/* Mode quadrants (u) — résultat d'une sous-colonne de rayon : intervalle de
+   mur [start, end] en pixels (2*scr_h) + code couleur (face*6 + palier). */
+typedef struct s_qcol
+{
+	int				start;
+	int				end;
+	int				code;
+}					t_qcol;
+
 typedef struct s_ray
 {
 	double			dir_x;
@@ -132,7 +143,7 @@ void				detect_screen_size(t_game *game);
 /* resize_bonus.c */
 void				apply_size(t_game *game, int cols, int rows);
 void				realloc_buffers(t_game *game);
-void				handle_resize(t_game *game);
+int					handle_resize(t_game *game);
 
 /* raycaster_bonus.c */
 void				ray_setup(t_game *g, t_ray *r, double cam);
@@ -152,6 +163,12 @@ void				render_half(t_game *game);
 
 /* halfflush_bonus.c */
 void				flush_half(t_game *game, t_screen *scr);
+
+/* render_quad_bonus.c */
+void				render_quad(t_game *game);
+
+/* quadflush_bonus.c */
+void				quad_flush(t_game *game, t_screen *scr);
 
 /* color_bonus.c */
 int					dist_band(double dist);

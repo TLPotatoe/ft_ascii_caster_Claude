@@ -41,8 +41,9 @@ void	realloc_buffers(t_game *g)
 
 /* Bonus resize mid-run : re-mesure la taille ; si elle a changé, réalloue les
    buffers et nettoie l'écran. Appelé périodiquement par la boucle (pas de
-   SIGWINCH, signal() interdit). Sans effet si la mesure échoue/est stable. */
-void	handle_resize(t_game *g)
+   SIGWINCH, signal() interdit). Renvoie 1 si la taille a changé (la frame doit
+   être redessinée), 0 si la mesure échoue ou est stable. */
+int	handle_resize(t_game *g)
 {
 	int	cols;
 	int	rows;
@@ -50,12 +51,13 @@ void	handle_resize(t_game *g)
 	int	oh;
 
 	if (!measure_size(&cols, &rows))
-		return ;
+		return (0);
 	ow = g->scr_w;
 	oh = g->scr_h;
 	apply_size(g, cols, rows);
 	if (g->scr_w == ow && g->scr_h == oh)
-		return ;
+		return (0);
 	realloc_buffers(g);
 	write(1, "\033[2J", 4);
+	return (1);
 }

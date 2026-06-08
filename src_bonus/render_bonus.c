@@ -85,17 +85,17 @@ static void	flush_screen(t_game *game, t_screen *scr)
 	write(1, game->frame, (size_t)(p - game->frame));
 }
 
-/* Modes lettres (r) et densité (t) ; le demi-bloc (y) a son propre rendu. */
+/* Modes lettres (r) et densité (t) ; demi-bloc (y) / quadrants (u) ont leur
+   propre rendu et sont délégués directement. */
 void	render_frame(t_game *game)
 {
 	t_screen	scr;
 	int			x;
 
 	if (game->mode == MODE_HALF)
-	{
-		render_half(game);
-		return ;
-	}
+		return (render_half(game));
+	if (game->mode == MODE_QUAD)
+		return (render_quad(game));
 	scr.ch = game->screen;
 	scr.band = game->band;
 	scr.band2 = game->band2;
