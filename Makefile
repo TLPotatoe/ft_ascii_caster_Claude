@@ -1,7 +1,7 @@
 NAME		= ft_ascii_caster
 
 CC			= cc
-CFLAGS		= -Wall -Wextra -Werror
+CFLAGS		= -g -Wall -Wextra -Werror
 INCLUDES	= -Iincludes
 
 SRC_DIR		= src
