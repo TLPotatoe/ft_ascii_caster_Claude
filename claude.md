@@ -390,8 +390,18 @@ rendu vérifié (faces correctes + mini-carte).
 - [x] Redimensionnement en cours de jeu (polling ~0,5 s + réallocation, sans
   `SIGWINCH`).
 
-Projet complet. Pistes éventuelles si demandé : cartes plus grandes, mini-carte
-mise à l'échelle, lissage du rendu.
+Projet complet. Pistes éventuelles si demandé : mini-carte mise à l'échelle,
+lissage du rendu.
+
+### Cartes disponibles (`maps/`)
+Toutes validées par le parser réel (charset, joueur unique, fermeture par murs ;
+largeurs de lignes uniformes). Tailles et complexités variées :
+- `classic.map` — carte d'exemple du sujet.
+- `classic2.map` (24×12) — salle moyenne, piliers 2×2 symétriques.
+- `pillars.map` (33×17) — grand hall, piliers réguliers.
+- `maze.map` (27×19) — labyrinthe parfait généré par DFS (entièrement connecté).
+- `arena.map` (45×21) — grande arène ouverte (losange central + blocs d'angle).
+- `spiral.map` (27×27) — long couloir en spirale.
 
 ### Reprise rapide pour une nouvelle session
 - `make` puis `./ft_ascii_caster maps/classic.map` (nécessite un vrai terminal).

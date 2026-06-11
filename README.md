@@ -198,7 +198,8 @@ ft_ascii_caster/
 ├── includes/
 │   ├── ft_ascii_caster.h
 │   └── ft_ascii_caster_bonus.h
-├── maps/classic.map
+├── maps/                    # cartes .map : classic, classic2, pillars,
+│                            #   maze (labyrinthe DFS), arena, spiral
 ├── src/                     # mandatoire (DDA via t_ray, rendu, parsing…)
 ├── src_bonus/               # bonus, fichiers suffixés _bonus
 │                            #   termsize/resize : résolution adaptée au terminal
