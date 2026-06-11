@@ -25,7 +25,7 @@ static void	put_cell(t_screen *scr, int sx, int sy, char c)
 	scr->band2[sy * scr->w + sx] = COL_BG;
 }
 
-/* Bonus — mini-carte 2D en haut à gauche : murs '#', sol '.', joueur fléché.
+/* Bonus — mini-carte 2D en haut à gauche : murs '#', sol ' ', joueur fléché.
    Échelle 1 cellule = 1 caractère ; clippée aux bords de l'écran. */
 void	draw_minimap(t_game *game, t_screen *scr)
 {
@@ -39,7 +39,7 @@ void	draw_minimap(t_game *game, t_screen *scr)
 		x = 0;
 		while (x < (int)ft_strlen(game->map.grid[y]))
 		{
-			c = '.';
+			c = ' ';
 			if (game->map.grid[y][x] == '1')
 				c = '#';
 			put_cell(scr, MM_OX + x, MM_OY + y, c);

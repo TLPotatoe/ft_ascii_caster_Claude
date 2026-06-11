@@ -229,7 +229,7 @@ via **`make bonus`** (le mandatoire reste accessible via `make`, inchangé).
   y), `E`/`W` (murs verticaux selon `step` en x) — qui pilote à la fois le
   caractère (mode lettres) et la teinte (couleur). Ordre aligné sur la palette.
 - **Mini-carte** (`src_bonus/minimap_bonus.c`) : vue 2D en haut-gauche, murs `#`,
-  sol `.`, joueur fléché (`^ v < >`) selon l'orientation, mise à jour temps réel,
+  sol ` ` (espace), joueur fléché (`^ v < >`) selon l'orientation, mise à jour temps réel,
   clippée aux bords de l'écran.
 - **Résolution adaptée au terminal** (`src_bonus/termsize_bonus.c`) : le rendu
   occupe désormais toute la fenêtre — **terminal grand ⇒ grande résolution**. La
